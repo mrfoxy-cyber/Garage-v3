@@ -1,9 +1,10 @@
 using Garage.Engines;
 using Garage.Vehicles.Components;
+using Vehicles.Interfaces;
 
 namespace Garage.Vehicles.Specifications;
 
-public abstract class VehicleSpecification
+public abstract class VehicleSpecification: IVehicleSpecification
 {
     public const int MaximumNumberOfEngines = 100;
     public const int MaximumNumberOfSeats = 10_000;

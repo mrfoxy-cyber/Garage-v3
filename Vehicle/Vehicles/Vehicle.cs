@@ -2,13 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Garage.Vehicles.Types;
-using Garage.Vehicles.Interfaces;
+using Vehicles.Interfaces;
 using Garage.Vehicles.Specifications;
+using Vehicles.Interfaces;
 
 namespace Garage.Vehicles
 {
 
-    public abstract class Vehicle : IManufacturer
+    public abstract class Vehicle : IManufacturer, IVehicle
     {
         private string _registrationNumber = string.Empty;
         private CountryCode _countryCode;
@@ -32,7 +33,8 @@ namespace Garage.Vehicles
         public required CountryCode CountryCode
         {
             get => _countryCode;
-            init
+
+            set
             {
                 if (value == CountryCode.Unspecified || !Enum.IsDefined(value))
                     throw new ArgumentOutOfRangeException(

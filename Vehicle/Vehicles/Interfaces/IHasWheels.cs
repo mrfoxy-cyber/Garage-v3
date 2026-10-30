@@ -1,4 +1,4 @@
-namespace Garage.Vehicles.Interfaces;
+namespace Vehicles.Interfaces;
 
 public interface IHasWheels
 {

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-using Garage.Vehicles.Interfaces;
+using Vehicles.Interfaces;
 using Garage.Vehicles.Specifications;
 
 namespace Garage.Vehicles

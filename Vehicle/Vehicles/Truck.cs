@@ -1,4 +1,4 @@
-﻿using Garage.Vehicles.Interfaces;
+﻿using Vehicles.Interfaces;
 using Garage.Vehicles.Specifications;
 
 namespace Garage.Vehicles;

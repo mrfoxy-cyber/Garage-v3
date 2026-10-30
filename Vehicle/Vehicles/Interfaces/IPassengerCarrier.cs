@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Garage.Vehicles.Interfaces
+namespace Vehicles.Interfaces
 {
     public interface IPassengerCarrier
     {

@@ -1,5 +1,5 @@
 using Garage.Vehicles;
-using Garage.Vehicles.Interfaces;
+using Vehicles.Interfaces;
 
 namespace Garage.Queries;
 
