@@ -1,0 +1,28 @@
+{
+  "type": "Car",
+  "registrationNumber": "NEW123",
+  "countryCode": "SWE",
+  "manufacturer": "Volvo",
+  "model": "V70",
+  "manufacturingYear": 2018,
+  "color": "Black",
+  "weightKg": 1700,
+  "lengthMeters": 4.8,
+  "widthMeters": 1.8,
+  "heightMeters": 1.5,
+  "vin": "VOLVO-V70-001",
+  "bodyType": "Sedan",
+  "numberOfDoors": 5,
+  "numberOfSeats": 5,
+  "engines": [
+    {
+      "type": "Inline",
+      "serialNumber": "ENG-VOLVO-001",
+      "model": "B4204T",
+      "fuelType": "Gasoline",
+      "horsePower": 190,
+      "displacementCc": 1969,
+      "cylinderCount": 4
+    }
+  ]
+}

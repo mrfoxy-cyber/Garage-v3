@@ -1,0 +1,8 @@
+{
+  "garageName": "Example Garage",
+  "vehiclesFile": "vehicles.json",
+  "assignments": [
+    { "spotNumber": 1, "registrationNumber": "ABC123" },
+    { "spotNumber": 2, "registrationNumber": "RED456" }
+  ]
+}

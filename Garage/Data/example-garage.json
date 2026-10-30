@@ -1,0 +1,19 @@
+{
+  "garageName": "Example Garage",
+  "capacity": 3,
+  "defaultSpotSize": {
+    "lengthMeters": 5,
+    "widthMeters": 2.5,
+    "heightMeters": 2.2
+  },
+  "spots": [
+    {
+      "spotNumber": 3,
+      "size": {
+        "lengthMeters": 12,
+        "widthMeters": 5,
+        "heightMeters": 5
+      }
+    }
+  ]
+}

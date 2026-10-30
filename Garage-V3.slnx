@@ -1,0 +1,39 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+    <File Path="Vehicle-Creation-Review.md" />
+  </Folder>
+  <Folder Name="/Use Cases/">
+    <File Path="UseCases/README.md" />
+    <File Path="UseCases/templates/use-case.md" />
+  </Folder>
+  <Folder Name="/Use Cases/Required/">
+    <File Path="UseCases/garage/create-garage.md" />
+    <File Path="UseCases/garage/park-vehicle.md" />
+    <File Path="UseCases/garage/remove-vehicle.md" />
+    <File Path="UseCases/garage/list-vehicles.md" />
+    <File Path="UseCases/garage/list-vehicle-types.md" />
+    <File Path="UseCases/garage/find-vehicle.md" />
+    <File Path="UseCases/garage/search-vehicles.md" />
+    <File Path="UseCases/garage/navigate-menus.md" />
+    <File Path="UseCases/garage/quit-application.md" />
+  </Folder>
+  <Folder Name="/Use Cases/Requirements/">
+    <File Path="UseCases/requirements/README.md" />
+    <File Path="UseCases/requirements/source/garage-1.0-original.txt" />
+  </Folder>
+  <Folder Name="/Use Cases/Optional/">
+    <File Path="UseCases/optional/README.md" />
+    <File Path="UseCases/optional/create-garage-with-dimensions.md" />
+    <File Path="UseCases/optional/create-vehicle.md" />
+    <File Path="UseCases/optional/inspect-spaces.md" />
+  </Folder>
+  <Folder Name="/Use Cases/Implementation/">
+    <File Path="UseCases/implementation/README.md" />
+  </Folder>
+  <Project Path="Garage.Console/Garage.Console.csproj" />
+  <Project Path="Garage.Terminal/Garage.Terminal.csproj" />
+  <Project Path="Garage.Tests/Garage.Tests.csproj" />
+  <Project Path="Garage/Garage.csproj" />
+  <Project Path="Vehicle/Vehicle.csproj" />
+</Solution>
