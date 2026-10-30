@@ -12,19 +12,19 @@ namespace Garage.Vehicles
         protected override bool IsValidRegistration(string number, CountryCode countryCode) =>
             Validation.IsValidAircraftRegistration(number, countryCode);
 
-        public required AirplaneSpecification Specification { get; init; }
-        public override VehicleSpecification SpecificationDetails => Specification;
-        public required string AirframeSerialNumber { get; init; }
-        public int NumberOfWheels => Specification.NumberOfWheels;
+        public AirplaneSpecification? Specification { get; init; }
+        public override VehicleSpecification? SpecificationDetails => Specification;
+        public string? AirframeSerialNumber { get; init; }
+        public int? NumberOfWheels => Specification?.NumberOfWheels;
 
-        public int PassengerCapacity => Specification.Cabin.PassengerSeatCount;
+        public int? PassengerCapacity => Specification?.Cabin.PassengerSeatCount;
 
-        public int DriverSeats =>
-            Specification.Cockpit?.PilotSeats ?? 0;
+        public int? DriverSeats =>
+            Specification?.Cockpit?.PilotSeats ?? 0;
 
-        public int NumberOfSeats =>
+        public int? NumberOfSeats =>
             PassengerCapacity +
             DriverSeats +
-            Specification.Cabin.CrewSeatCount;
+            Specification?.Cabin.CrewSeatCount;
     }
 }

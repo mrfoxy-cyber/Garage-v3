@@ -34,20 +34,33 @@ public static class CarFactory
             ManufacturingYear = manufacturingYear,
             Color = color,
             Vin = vin,
-            Specification = new CarSpecification
+            Specification = new CarSpecification(
+                                    bodyType: bodyType,
+                                    numberOfDoors: numberOfDoors,
+                                    numberOfWheels: 4,
+                                    cabin: new Cabin
             {
-                WeightKg = weightKg,
-                Dimensions = new Dimensions(length, width, height),
-                BodyType = bodyType,
-                NumberOfDoors = numberOfDoors,
-                NumberOfWheels = 4,
-                Cabin = new Cabin
-                {
-                    PassengerSeatCount = numberOfSeats - 1,
-                    CrewSeatCount = 1
-                },
-                Engines = engines ?? []
+                PassengerSeatCount = numberOfSeats - 1,
+                CrewSeatCount = 1
+            })
+                    {
+                        WeightKg = weightKg,
+                        Dimensions = new Dimensions(length, width, height),
+                        Engines = engines ?? []
             }
+        };
+    }
+
+    public static Car CreateCar(
+    string registrationNumber,
+    CountryCode countryCode,
+    CarSpecification? specification = null)
+    {
+        return new Car
+        {
+            RegistrationNumber = registrationNumber,
+            CountryCode = countryCode,
+            Specification = specification
         };
     }
 }

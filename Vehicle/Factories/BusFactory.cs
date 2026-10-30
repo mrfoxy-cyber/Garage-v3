@@ -52,4 +52,17 @@ public static class BusFactory
             }
         };
     }
+
+    public static Bus CreateBus(
+    string registrationNumber,
+    CountryCode countryCode,
+    BusSpecification? specification = null)
+    {
+        return new Bus
+        {
+            RegistrationNumber = registrationNumber,
+            CountryCode = countryCode,
+            Specification = specification
+        };
+    }
 }

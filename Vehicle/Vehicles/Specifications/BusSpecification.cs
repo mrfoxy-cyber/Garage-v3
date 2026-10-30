@@ -5,10 +5,10 @@ namespace Garage.Vehicles.Specifications;
 public class BusSpecification : VehicleSpecification
 {
     public BusSpecification(
-        int numberOfDoors,
-        int numberOfWheels,
-        int standingPassengerCapacity,
-        Cabin cabin)
+        int? numberOfDoors=null,
+        int? numberOfWheels=null,
+        int? standingPassengerCapacity=null,
+        Cabin? cabin=null)
     {
         if (numberOfDoors < 1)
         {
@@ -52,14 +52,35 @@ public class BusSpecification : VehicleSpecification
                 "Driver seat count cannot be negative.");
         }
 
+        if (cabin?.PassengerSeatCount < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(cabin),
+                "Passenger seat count cannot be negative.");
+        }
+
+        if (cabin?.PassengerSeatCount == 0 &&
+            standingPassengerCapacity == 0)
+        {
+            throw new ArgumentException(
+                "A bus must have capacity for at least one passenger.");
+        }
+
+        if (cabin?.CrewSeatCount < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(cabin),
+                "Crew seat count cannot be negative.");
+        }
+
         NumberOfDoors = numberOfDoors;
         NumberOfWheels = numberOfWheels;
         StandingPassengerCapacity = standingPassengerCapacity;
         Cabin = cabin;
     }
 
-    public int NumberOfDoors { get; }
-    public int NumberOfWheels { get; }
-    public int StandingPassengerCapacity { get; }
-    public Cabin Cabin { get; }
+    public int? NumberOfDoors { get; }
+    public int? NumberOfWheels { get; }
+    public int? StandingPassengerCapacity { get; }
+    public Cabin? Cabin { get; }
 }

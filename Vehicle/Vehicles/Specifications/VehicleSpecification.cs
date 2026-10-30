@@ -10,7 +10,7 @@ public abstract class VehicleSpecification
     public const int MaximumNumberOfWheels = 100;
     public const double MaximumLengthMeters = 1_000;
 
-    public required double WeightKg { get; init; }
+    public double? WeightKg { get; init; }
     public required Dimensions Dimensions { get; init; }
     private List<Engine> engines = [];
 

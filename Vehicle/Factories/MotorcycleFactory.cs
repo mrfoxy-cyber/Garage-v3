@@ -36,17 +36,31 @@ public static class MotorcycleFactory
             ManufacturingYear = manufacturingYear,
             Color = color,
             Vin = vin,
-            Specification = new MotorcycleSpecification
+            Specification = new MotorcycleSpecification(
+                                    motorcycleType: motorcycleType,
+                                    hasSidecar: hasSidecar,
+                                    numberOfWheels: numberOfWheels,
+                                    passengerCapacity: passengerCapacity,
+                                    driverSeats: driverSeats)
             {
                 WeightKg = weightKg,
-                Dimensions = new Dimensions(lengthMeters, widthMeters, heightMeters),
-                MotorcycleType = motorcycleType,
-                HasSidecar = hasSidecar,
-                NumberOfWheels = numberOfWheels,
-                PassengerCapacity = passengerCapacity,
-                DriverSeats = driverSeats,
+                Dimensions = new Dimensions(
+                                    lengthMeters, widthMeters, heightMeters),
                 Engines = engines ?? []
             }
+        };
+    }
+
+    public static Motorcycle CreateMotorcycle(
+    string registrationNumber,
+    CountryCode countryCode,
+    MotorcycleSpecification? specification = null)
+    {
+        return new Motorcycle
+        {
+            RegistrationNumber = registrationNumber,
+            CountryCode = countryCode,
+            Specification = specification
         };
     }
 }

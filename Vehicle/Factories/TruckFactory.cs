@@ -51,4 +51,17 @@ public static class TruckFactory
             }
         };
     }
+
+    public static Truck CreateTruck(
+        string registrationNumber,
+        CountryCode countryCode,
+        TruckSpecification? specification =null)
+    {
+        return new Truck
+        {
+            RegistrationNumber = registrationNumber,
+            CountryCode = countryCode,
+            Specification = specification
+        };
+    }
 }

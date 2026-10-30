@@ -15,15 +15,15 @@ namespace Garage.Vehicles
         protected override bool IsValidRegistration(string number, CountryCode countryCode) =>
             Validation.IsValidBoatRegistration(number, countryCode);
 
-        public required BoatSpecification Specification { get; init; }
-        public override VehicleSpecification SpecificationDetails => Specification;
-        public required string Hin { get; init; }
+        public BoatSpecification? Specification { get; init; }
+        public override VehicleSpecification? SpecificationDetails => Specification;
+        public string? Hin { get; init; }
 
-        public int PassengerCapacity => Specification.PassengerCapacity;
-        public bool HasCabin => Specification.Cabin is not null;
+        public int? PassengerCapacity => Specification?.PassengerCapacity;
+        public bool? HasCabin => Specification?.Cabin is not null;
 
-        public int DriverSeats => Specification.DriverSeats;
+        public int? DriverSeats => Specification?.DriverSeats;
 
-        public int NumberOfSeats => PassengerCapacity + DriverSeats;
+        public int? NumberOfSeats => PassengerCapacity + DriverSeats;
     }
 }

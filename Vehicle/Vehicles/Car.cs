@@ -9,14 +9,14 @@ namespace Garage.Vehicles
 {
     public class Car : RoadVehicle, IPassengerCarrier, IHasWheels, IHasSeats
     {
-        public required CarSpecification Specification { get; init; }
-        public override VehicleSpecification SpecificationDetails => Specification;
-        public required string Vin { get; init; }
-        public int PassengerCapacity => Specification.Cabin.PassengerSeatCount;
-        public int NumberOfWheels => Specification.NumberOfWheels;
+        public CarSpecification? Specification { get; init; }
+        public override VehicleSpecification? SpecificationDetails => Specification;
+        public string? Vin { get; init; }
+        public int? PassengerCapacity => Specification?.Cabin.PassengerSeatCount;
+        public int? NumberOfWheels => Specification?.NumberOfWheels;
 
-        public int DriverSeats => Specification.Cabin.CrewSeatCount;
+        public int? DriverSeats => Specification?.Cabin.CrewSeatCount;
 
-        public int NumberOfSeats => PassengerCapacity + DriverSeats;
+        public int? NumberOfSeats => PassengerCapacity + DriverSeats;
     }
 }

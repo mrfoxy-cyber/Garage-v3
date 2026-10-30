@@ -158,43 +158,43 @@ internal static class VehicleSearch
 
         if (criteria.MotorcycleType is { } motorcycleType &&
             (vehicle is not Motorcycle motorcycle ||
-             motorcycle.Specification.MotorcycleType != motorcycleType))
+             motorcycle?.Specification?.MotorcycleType != motorcycleType))
             return false;
 
         if (criteria.HasSidecar is { } hasSidecar &&
             (vehicle is not Motorcycle sidecarMotorcycle ||
-             sidecarMotorcycle.Specification.HasSidecar != hasSidecar))
+             sidecarMotorcycle?.Specification?.HasSidecar != hasSidecar))
             return false;
 
         if (criteria.BoatType is { } boatType &&
-            (vehicle is not Boat boat || boat.Specification.BoatType != boatType))
+            (vehicle is not Boat boat || boat?.Specification?.BoatType != boatType))
             return false;
 
         if (criteria.DraftMeters is { } draftMeters &&
             (vehicle is not Boat draftBoat ||
-             !MatchesMeasurement(draftBoat.Specification.DraftMeters, draftMeters)))
+             !MatchesMeasurement(draftBoat?.Specification?.DraftMeters, draftMeters)))
             return false;
 
         if (criteria.WingspanMeters is { } wingspanMeters &&
             (vehicle is not Airplane airplane ||
-             !MatchesMeasurement(airplane.Specification.WingspanMeters, wingspanMeters)))
+             !MatchesMeasurement(airplane?.Specification?.WingspanMeters, wingspanMeters)))
             return false;
 
         if (criteria.MaximumAltitudeMeters is { } maximumAltitudeMeters &&
             (vehicle is not Airplane altitudeAirplane ||
              !MatchesMeasurement(
-                 altitudeAirplane.Specification.MaximumAltitudeMeters,
+                 altitudeAirplane?.Specification?.MaximumAltitudeMeters,
                  maximumAltitudeMeters)))
             return false;
 
         if (criteria.StandingPassengerCapacity is { } standingCapacity &&
             (vehicle is not Bus bus ||
-             bus.Specification.StandingPassengerCapacity != standingCapacity))
+             bus?.Specification?.StandingPassengerCapacity != standingCapacity))
             return false;
 
         if (criteria.NumberOfAxles is { } numberOfAxles &&
             (vehicle is not Truck truck ||
-             truck.Specification.NumberOfAxles != numberOfAxles))
+             truck?.Specification?.NumberOfAxles != numberOfAxles))
             return false;
 
         if (criteria.MaximumLoadKg is { } maximumLoadKg &&
@@ -205,7 +205,9 @@ internal static class VehicleSearch
         return true;
     }
 
-    private static bool MatchesMeasurement(double actual, double expected) =>
-        double.IsFinite(expected) && Math.Abs(actual - expected) < 0.01;
+    private static bool MatchesMeasurement(double? actual, double expected) =>
+        actual is double value &&
+        double.IsFinite(expected) &&
+        Math.Abs(value - expected) < 0.01;
 
 }

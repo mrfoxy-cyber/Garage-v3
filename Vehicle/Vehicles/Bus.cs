@@ -9,20 +9,20 @@ namespace Garage.Vehicles
 {
     public class Bus : RoadVehicle, IPassengerCarrier, IHasWheels, IHasSeats
     {
-        public required BusSpecification Specification { get; init; }
-        public override VehicleSpecification SpecificationDetails => Specification;
-        public required string Vin { get; init; }
+        public BusSpecification? Specification { get; init; }
+        public override VehicleSpecification? SpecificationDetails => Specification;
+        public string? Vin { get; init; }
 
      
-        public int NumberOfWheels => Specification.NumberOfWheels;
+        public int? NumberOfWheels => Specification?.NumberOfWheels;
 
-        public int PassengerCapacity =>
-            Specification.Cabin.PassengerSeatCount +
-            Specification.StandingPassengerCapacity;
+        public int? PassengerCapacity =>
+            Specification?.Cabin?.PassengerSeatCount +
+            Specification?.StandingPassengerCapacity;
 
-        public int DriverSeats => Specification.Cabin.CrewSeatCount;
+        public int? DriverSeats => Specification?.Cabin?.CrewSeatCount;
 
-        public int NumberOfSeats =>
-            Specification.Cabin.PassengerSeatCount + DriverSeats;
+        public int? NumberOfSeats =>
+            Specification?.Cabin?.PassengerSeatCount + DriverSeats;
     }
 }

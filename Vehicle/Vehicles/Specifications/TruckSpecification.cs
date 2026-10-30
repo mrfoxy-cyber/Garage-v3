@@ -3,9 +3,9 @@
 public class TruckSpecification : VehicleSpecification
 {
     public TruckSpecification(
-        int numberOfWheels,
-        int numberOfAxles,
-        double maximumLoadKg)
+        int? numberOfWheels=null,
+        int? numberOfAxles=null,
+        double? maximumLoadKg=null)
     {
         if (numberOfAxles < 1)
         {
@@ -28,12 +28,19 @@ public class TruckSpecification : VehicleSpecification
                 "Maximum load cannot be negative.");
         }
 
+        if (numberOfWheels < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(numberOfWheels),
+                "Number of wheels cannot be negative.");
+        }
+
         NumberOfWheels = numberOfWheels;
         NumberOfAxles = numberOfAxles;
         MaximumLoadKg = maximumLoadKg;
     }
 
-    public int NumberOfWheels { get; }
-    public int NumberOfAxles { get; }
-    public double MaximumLoadKg { get; }
+    public int? NumberOfWheels { get; }
+    public int? NumberOfAxles { get; }
+    public double? MaximumLoadKg { get; }
 }

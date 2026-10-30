@@ -61,13 +61,24 @@ namespace Garage.Vehicles
                     nameof(RegistrationNumber));
         }
 
-        public required string Manufacturer { get; init; }
-        public required string Model { get; init; }
+        public string? Manufacturer { get; init; }
+        public string? Model { get; init; }
 
-        public required int ManufacturingYear { get; init; }
-        public required VehicleColor Color { get; set; }
+        public int? ManufacturingYear { get; init; }
+        public VehicleColor? Color { get; set; }
 
-        public abstract VehicleSpecification SpecificationDetails { get; }
+        public abstract VehicleSpecification? SpecificationDetails { get; }
+
+        // Preserves existing subclasses and object initializers.
+        protected Vehicle()
+        {
+        }
+
+        // Supports a new construction path.
+        protected Vehicle(string registrationNumber)
+        {
+            RegistrationNumber = registrationNumber;
+        }
     }
 
 }

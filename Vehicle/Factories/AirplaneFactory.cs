@@ -47,20 +47,35 @@ public static class AirplaneFactory
             Color = color,
             AirframeSerialNumber = airframeSerialNumber,
             Specification = new AirplaneSpecification(
-                new Cabin
+                cabin: new Cabin
                 {
                     PassengerSeatCount = passengerSeatCount,
                     CrewSeatCount = crewSeatCount
                 },
-                cockpit)
+                cockpit: cockpit,
+                maximumAltitudeMeters: maximumAltitudeMeters,
+                wingspanMeters: wingspanMeters,
+                numberOfWheels: numberOfWheels
+
+                )
             {
                 WeightKg = weightKg,
                 Dimensions = new Dimensions(lengthMeters, wingspanMeters, heightMeters),
-                NumberOfWheels = numberOfWheels,
-                WingspanMeters = wingspanMeters,
-                MaximumAltitudeMeters = maximumAltitudeMeters,
                 Engines = engines ?? []
             }
+        };
+    }
+
+    public static Airplane CreateAirplane(
+    string registrationNumber,
+    CountryCode countryCode,
+    AirplaneSpecification? specification = null)
+    {
+        return new Airplane
+        {
+            RegistrationNumber = registrationNumber,
+            CountryCode = countryCode,
+            Specification = specification
         };
     }
 }

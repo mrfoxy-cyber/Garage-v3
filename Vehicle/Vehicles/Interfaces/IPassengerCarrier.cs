@@ -6,8 +6,8 @@ namespace Garage.Vehicles.Interfaces
 {
     public interface IPassengerCarrier
     {
-        int PassengerCapacity { get; }
+        int? PassengerCapacity { get; }
 
-        int DriverSeats { get; }
+        int? DriverSeats { get; }
     }
 }

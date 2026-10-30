@@ -47,16 +47,29 @@ public static class BoatFactory
             Color = color,
             Hin = hin,
             Specification = new BoatSpecification(
-                passengerCapacity,
-                driverSeats,
-                cabin)
+                passengerCapacity: passengerCapacity,
+                driverSeats: driverSeats,
+                cabin: cabin,
+                draftMeters: draftMeters,
+                boatType: boatType)
             {
                 WeightKg = weightKg,
                 Dimensions = new Dimensions(lengthMeters, widthMeters, heightMeters),
-                BoatType = boatType,
-                DraftMeters = draftMeters,
                 Engines = engines ?? []
             }
+        };
+    }
+
+    public static Boat CreateBoat(
+    string registrationNumber,
+    CountryCode countryCode,
+    BoatSpecification? specification = null)
+    {
+        return new Boat
+        {
+            RegistrationNumber = registrationNumber,
+            CountryCode = countryCode,
+            Specification = specification
         };
     }
 }
