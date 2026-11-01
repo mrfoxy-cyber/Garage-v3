@@ -9,6 +9,8 @@ namespace Garage.Terminal.Components;
 
 public sealed class ParkVehicleInput : FormComponent
 {
+
+    private readonly Label registrationHint;
     public ChoiceInput VehicleType { get; }
     public ChoiceInput Country { get; }
     public ChoiceInput Color { get; }
@@ -22,10 +24,12 @@ public sealed class ParkVehicleInput : FormComponent
     {
         VehicleType = AddChoiceInput("Vehicle type", VehicleOptions.Types);
         Registration = AddTextInput("Registration number");
+        registrationHint = AddTextBlock(string.Empty);
         Country = AddChoiceInput("Country", VehicleOptions.Countries, "SWE");
         Color = AddChoiceInput("Colour", ["Unknown", .. VehicleOptions.Colors], "Unknown");
         Wheels = AddTextInput("Wheel count (blank = unknown)");
         Spot = AddTextInput("Spot (blank = automatic)");
+
         AddAction("_Park vehicle", Submit);
     }
 
@@ -69,6 +73,33 @@ public sealed class ParkVehicleInput : FormComponent
 
         VehicleColor? color = Color.Value == "Unknown" ? null : Enum.Parse<VehicleColor>(Color.Value);
         ParkRequested?.Invoke(new(VehicleType.Value, registration, Enum.Parse<CountryCode>(Country.Value), color, spot, wheels));
+
+        VehicleType.ValueChanged += _ => UpdateRegistrationHint();
+        Country.ValueChanged += _ => UpdateRegistrationHint();
+
+        UpdateRegistrationHint();
+
+
+    }
+
+    private void UpdateRegistrationHint()
+    {
+        registrationHint.Text = (VehicleType.Value, Country.Value) switch
+        {
+            ("Boat", "SWE") =>
+                "Examples: SABC, SAM-2000 or 7SA-2000.",
+
+            ("Airplane", "SWE") =>
+                "Example: SE-ABC. Include the hyphen.",
+
+            ("Car" or "Motorcycle" or "Bus", "SWE") =>
+                "Examples: ABC123 or ABC12A.",
+
+            _ =>
+                "No format example available for this selection."
+        };
+
+        RequestReflow();
     }
 
     public void Reset()
