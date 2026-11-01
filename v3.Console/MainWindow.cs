@@ -7,32 +7,53 @@ namespace Garage.Terminal.Views;
 
 public sealed class MainWindow : Runnable
 {
+    private readonly ScreenHost screenHost;
+
+    public GarageTheme Theme { get; }
+    public HomeView Home { get; }
+
     public event Action<GarageMenuAction>? MenuRequested;
 
     public MainWindow()
     {
         Title = "Garage V3";
 
-        GarageTheme theme = new();
+        Theme = new();
+        Theme.Apply();
 
-        GarageView garageView = new(theme)
+        SchemeName = Theme.SurfaceScheme;
+
+        BottomCommandBar commands = new(Theme)
         {
-            Height = Dim.Fill(1)
+            Y = Pos.AnchorEnd(),
+            Width = Dim.Fill()
         };
 
-        BottomCommandBar commands = new(theme);
+        screenHost = new()
+        {
+            Width = Dim.Fill(),
+            Height = Dim.Fill(commands)
+        };
 
-        // Sample data for reviewing the layout.
-        garageView.Summary.Update(new("City Garage", 20, 4));
+        Home = new(Theme, []);
+        screenHost.ShowPage(Home);
 
         commands.OptionRequested += action =>
         {
             if (action == GarageMenuAction.Quit)
+            {
                 App?.RequestStop();
-            else
-                MenuRequested?.Invoke(action);
+                return;
+            }
+
+            MenuRequested?.Invoke(action);
         };
 
-        Add(garageView, commands);
+        Add(screenHost, commands);
+    }
+
+    public void ShowPage(PageView page)
+    {
+        screenHost.ShowPage(page);
     }
 }

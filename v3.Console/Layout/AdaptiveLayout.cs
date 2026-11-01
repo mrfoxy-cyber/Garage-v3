@@ -5,121 +5,138 @@ using Terminal.Gui.ViewBase;
 
 namespace Garage.Terminal.Layout;
 
-public sealed class AdaptiveLayout : View
+public sealed class AdaptiveLayout : View, IAdaptiveComponent
 {
     private const int Gap = 2;
 
-    private readonly List<(View Control, IAdaptiveComponent Sizing)> components = [];
+    private sealed record Item(View Control, IAdaptiveComponent Sizing);
+    private sealed record Placement(View Control, Rectangle Bounds);
 
-    public AdaptiveLayout()
+    private readonly List<Item> components = [];
+    private readonly bool scrollable;
+
+    public event Action? SizeHintsChanged;
+
+    public int MinimumWidth => components.Where(item => item.Control.Visible)
+        .Select(item => item.Sizing.MinimumWidth).DefaultIfEmpty(1).Max();
+
+    public int PreferredWidth
     {
+        get
+        {
+            var visible = components.Where(item => item.Control.Visible).ToList();
+            return visible.Count == 0 ? 1 : visible.Sum(item => item.Sizing.PreferredWidth) + Gap * (visible.Count - 1);
+        }
+    }
+
+    public AdaptiveLayout(bool scrollable = true)
+    {
+        this.scrollable = scrollable;
+
         CanFocus = true;
         Width = Dim.Fill();
         Height = Dim.Fill();
 
-        ViewportSettings |= ViewportSettingsFlags.HasScrollBars;
+        if (scrollable)
+        {
+            ViewportSettings |= ViewportSettingsFlags.HasScrollBars;
+
+            AddCommand(Command.ScrollDown, () => { ScrollVertical(5); return true; });
+            AddCommand(Command.ScrollUp, () => { ScrollVertical(-5); return true; });
+
+            KeyBindings.Add(Key.PageDown, Command.ScrollDown);
+            KeyBindings.Add(Key.PageUp, Command.ScrollUp);
+        }
 
         SubViewLayout += (_, _) => ArrangeComponents();
-
-        AddCommand(Command.ScrollDown, () => { ScrollVertical(5); return true; });
-        AddCommand(Command.ScrollUp, () => { ScrollVertical(-5); return true; });
-
-        KeyBindings.Add(Key.PageDown, Command.ScrollDown);
-        KeyBindings.Add(Key.PageUp, Command.ScrollUp);
     }
 
     public void AddComponent<T>(T component) where T : View, IAdaptiveComponent
     {
-        components.Add((component, component));
-        component.SizeHintsChanged += () => SetNeedsLayout();
+        ArgumentNullException.ThrowIfNull(component);
+
+        if (component.SuperView is not null)
+            throw new InvalidOperationException("This component already belongs to another view. Create a new instance.");
+
+        components.Add(new(component, component));
+        component.SizeHintsChanged += NotifyLayoutChanged;
 
         Add(component);
-        SetNeedsLayout();
+        NotifyLayoutChanged();
+    }
+
+    public int MeasureHeight(int availableWidth)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(availableWidth);
+
+        return BuildLayout(availableWidth)
+            .Select(item => item.Bounds.Bottom)
+            .DefaultIfEmpty(0)
+            .Max();
+    }
+
+    private List<Placement> BuildLayout(int availableWidth)
+    {
+        List<Placement> placements = [];
+
+        int left = 0;
+        int top = 0;
+        int rowHeight = 0;
+
+        foreach (var item in components.Where(item => item.Control.Visible))
+        {
+            int minimum = Math.Max(1, item.Sizing.MinimumWidth);
+            int preferred = Math.Max(minimum, item.Sizing.PreferredWidth);
+            int width = Math.Max(minimum, Math.Min(preferred, availableWidth));
+
+            if (left > 0 && left + width > availableWidth)
+            {
+                left = 0;
+                top += rowHeight + Gap;
+                rowHeight = 0;
+            }
+
+            int height = Math.Max(1, item.Sizing.MeasureHeight(width));
+
+            placements.Add(new(item.Control, new Rectangle(left, top, width, height)));
+
+            left += width + Gap;
+            rowHeight = Math.Max(rowHeight, height);
+        }
+
+        return placements;
     }
 
     private void ArrangeComponents()
     {
-        if (components.Count == 0 || Viewport.Width <= 0)
+        if (Viewport.Width <= 0)
             return;
 
-        int availableWidth = Viewport.Width;
+        var placements = BuildLayout(Viewport.Width);
 
-        int requiredWidth = components.Sum(item => item.Sizing.PreferredWidth)
-            + Gap * (components.Count - 1);
-
-        if (availableWidth >= requiredWidth)
+        foreach (var item in placements)
         {
-            ArrangeHorizontally(availableWidth);
-        }
-        else
-        {
-            ArrangeVertically(availableWidth);
-        }
-    }
-
-    private void ArrangeHorizontally(int availableWidth)
-    {
-        int left = 0;
-        int requiredHeight = 0;
-
-        for (int index = 0; index < components.Count; index++)
-        {
-            var item = components[index];
-            int remainingCount = components.Count - index - 1;
-
-            int reservedWidth = components
-                .Skip(index + 1)
-                .Sum(next => next.Sizing.MinimumWidth);
-
-            reservedWidth += Gap * remainingCount;
-
-            int maximumWidth = availableWidth - left - reservedWidth;
-
-            int width = remainingCount == 0
-                ? maximumWidth
-                : Math.Clamp(item.Sizing.PreferredWidth, item.Sizing.MinimumWidth, maximumWidth);
-
-            int height = item.Sizing.MeasureHeight(width);
-
-            Place(item.Control, left, 0, width, height);
-
-            left += width + Gap;
-            requiredHeight = Math.Max(requiredHeight, height);
+            item.Control.X = item.Bounds.X;
+            item.Control.Y = item.Bounds.Y;
+            item.Control.Width = item.Bounds.Width;
+            item.Control.Height = item.Bounds.Height;
         }
 
-        UpdateContentSize(availableWidth, requiredHeight);
-    }
+        if (!scrollable)
+            return;
 
-    private void ArrangeVertically(int availableWidth)
-    {
-        int width = Math.Max(availableWidth, components.Max(item => item.Sizing.MinimumWidth));
-        int top = 0;
+        int width = Math.Max(Viewport.Width, placements.Select(item => item.Bounds.Right).DefaultIfEmpty(0).Max());
+        int height = placements.Select(item => item.Bounds.Bottom).DefaultIfEmpty(0).Max();
 
-        foreach (var item in components)
-        {
-            int height = item.Sizing.MeasureHeight(width);
-
-            Place(item.Control, 0, top, width, height);
-
-            top += height + Gap;
-        }
-
-        UpdateContentSize(width, top - Gap);
-    }
-
-    private static void Place(View control, int left, int top, int width, int height)
-    {
-        control.X = left;
-        control.Y = top;
-        control.Width = width;
-        control.Height = height;
-    }
-
-    private void UpdateContentSize(int width, int height)
-    {
         Size size = new(width, height);
 
         if (GetContentSize() != size)
             SetContentSize(size);
+    }
+
+    private void NotifyLayoutChanged()
+    {
+        SetNeedsLayout();
+        SizeHintsChanged?.Invoke();
     }
 }

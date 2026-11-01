@@ -12,7 +12,7 @@ public abstract class VehicleSpecification: IVehicleSpecification
     public const double MaximumLengthMeters = 1_000;
 
     public double? WeightKg { get; init; }
-    public required Dimensions Dimensions { get; init; }
+    public Dimensions? Dimensions { get; init; }
     private List<Engine> engines = [];
 
     public List<Engine> Engines

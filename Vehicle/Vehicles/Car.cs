@@ -12,10 +12,10 @@ namespace Garage.Vehicles
         public CarSpecification? Specification { get; init; }
         public override VehicleSpecification? SpecificationDetails => Specification;
         public string? Vin { get; init; }
-        public int? PassengerCapacity => Specification?.Cabin.PassengerSeatCount;
+        public int? PassengerCapacity => Specification?.Cabin?.PassengerSeatCount;
         public int? NumberOfWheels => Specification?.NumberOfWheels;
 
-        public int? DriverSeats => Specification?.Cabin.CrewSeatCount;
+        public int? DriverSeats => Specification?.Cabin?.CrewSeatCount;
 
         public int? NumberOfSeats => PassengerCapacity + DriverSeats;
     }
