@@ -8,5 +8,11 @@ public enum OperationError
     DuplicateRegistration,
     VehicleNotFound,
     InvalidSpot,
-    SpotOccupied
+    SpotOccupied,
+
+    MultipleVehiclesFound,
+
+    GarageAlreadyExists,
+
+    UnexpectedError
 }

@@ -8,20 +8,17 @@ public interface IHandler
 {
     OperationResult CreateGarage(string name, int capacity);
 
-    ParkingResult ParkVehicle(
-        IVehicle vehicle,
-        int? spotNumber = null);
-
     OperationResult RemoveVehicle(string registrationNumber);
 
-    IVehicle? FindVehicle(string registrationNumber);
+    (IVehicle? Vehicle, OperationResult Result) FindVehicle(string registrationNumber);
 
-    IReadOnlyList<ParkedVehicleInfo> GetVehicles();
+    (GarageInfo? Info, OperationResult Result) GetGarageInfo();
 
-    IReadOnlyList<ParkedVehicleInfo> SearchVehicles(
-        VehicleSearchCriteria criteria);
+    (IReadOnlyList<ParkedVehicleInfo> Vehicles, OperationResult Result) GetVehicles();
 
-    IReadOnlyList<VehicleTypeCount> GetVehicleTypeCounts();
+    (IReadOnlyList<VehicleTypeCount> Counts, OperationResult Result) GetVehicleTypeCounts();
 
-    GarageInfo? GetGarageInfo();
+    ParkingResult ParkVehicle( IVehicle vehicle, int? spotNumber = null);
+
+    (IReadOnlyList<ParkedVehicleInfo> Vehicles, OperationResult Result) SearchVehicles(VehicleSearchCriteria criteria);
 }
