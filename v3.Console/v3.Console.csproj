@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -17,6 +17,9 @@
   <ItemGroup>
     <Compile Remove="Tests\**" />
     <None Remove="Tests\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Garage-V3\Garage-V3.csproj" />
   </ItemGroup>
 
 </Project>

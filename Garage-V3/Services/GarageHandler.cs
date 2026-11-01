@@ -8,7 +8,7 @@ using Garage.Vehicles;
 
 namespace Garage_V3.Services
 {
-    internal class GarageHandler : IHandler
+    public sealed class GarageHandler : IHandler
     {
         private Garage<IVehicle>? garage;
         public OperationResult CreateGarage(string name, int capacity)
