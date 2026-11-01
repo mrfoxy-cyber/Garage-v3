@@ -1,0 +1,10 @@
+approval_policy = "on-request"
+approvals_reviewer = "user"
+default_permissions = "garage-only"
+
+[permissions.garage-only]
+extends = ":workspace"
+
+[permissions.garage-only.filesystem]
+":root" = "deny"
+":minimal" = "read"

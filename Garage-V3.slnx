@@ -36,7 +36,7 @@
   <Project Path="Garage.Terminal/Garage.Terminal.csproj" />
   <Project Path="Garage.Tests/Garage.Tests.csproj" />
   <Project Path="Garage/Garage.csproj" />
-  <Project Path="v3.Console/Tests/v3.Console.Tests.csproj" Id="eeceb9ac-294e-4b39-a66b-05ec7775088a" />
-  <Project Path="v3.Console/v3.Console.csproj" Id="eee46085-9fe1-4c49-9e20-3c7424b9541c" />
+  <Project Path="v3.Console/Garage-V3.Console.csproj" Id="eee46085-9fe1-4c49-9e20-3c7424b9541c" />
+  <Project Path="v3.Console/Tests/Garage-V3.Console.Tests.csproj" Id="eeceb9ac-294e-4b39-a66b-05ec7775088a" />
   <Project Path="Vehicle/Vehicle.csproj" />
 </Solution>

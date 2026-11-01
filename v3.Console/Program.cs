@@ -10,6 +10,6 @@ ConfigurationManager.Enable(ConfigLocations.All);
 IHandler handler = new GarageHandler();
 
 using IApplication app = Application.Create().Init();
-using MainWindow window = new(handler);
+using MainWindow window = new();
 
 app.Run(window);

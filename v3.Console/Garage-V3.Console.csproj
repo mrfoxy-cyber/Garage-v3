@@ -21,5 +21,9 @@
   <ItemGroup>
     <ProjectReference Include="..\Garage-V3\Garage-V3.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Controller\" />
+    <Folder Include="Services\" />
+  </ItemGroup>
 
 </Project>

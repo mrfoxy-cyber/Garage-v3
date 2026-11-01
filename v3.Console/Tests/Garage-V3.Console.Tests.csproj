@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <!-- Reference the app so we can construct and exercise its views headlessly. -->
-    <ProjectReference Include="..\v3.Console.csproj" />
+    <ProjectReference Include="..\Garage-V3.Console.csproj" />
   </ItemGroup>
 
 </Project>
