@@ -13,6 +13,8 @@ public sealed class HomeView : PageView
 
     public HomeView(GarageTheme theme, IReadOnlyList<GarageChoice> garages) : base("Home", theme, showBack: false)
     {
+        AddPanel("Garage", new GarageLogo(theme, showName: false));
+
         CreateInput = new(theme);
         AddPanel("Create a garage", CreateInput);
 

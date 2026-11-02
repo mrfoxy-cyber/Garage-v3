@@ -40,6 +40,7 @@ public sealed record GarageTheme
         SchemeManager.AddScheme(ButtonScheme, CreateFilled(Blue, PaleBlue, DeepBlue));
         SchemeManager.AddScheme(DangerButtonScheme, CreateFilled(new Color(185, 28, 28), ErrorBackground, ErrorText));
 
+
         Button.DefaultShadow = ShadowStyles.None;
     }
 
