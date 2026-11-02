@@ -28,5 +28,9 @@
 	<ItemGroup>
 		<None Update="Data\**\*.json" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Unit\" />
+	</ItemGroup>
 	
 </Project>
