@@ -33,6 +33,7 @@
   </Folder>
   <Project Path="Garage-V3/Garage-V3.csproj" Id="92f60d70-47f7-4c41-84f0-d5e13a0079dc" />
   <Project Path="Garage.Console/Garage.Console.csproj" />
+  <Project Path="Garage.Manager/Garage.Manager.csproj" Id="5180005e-81cd-4e54-b0c6-2bcd72e9a4cc" />
   <Project Path="Garage.Terminal/Garage.Terminal.csproj" />
   <Project Path="Garage.Tests/Garage.Tests.csproj" />
   <Project Path="Garage/Garage.csproj" />

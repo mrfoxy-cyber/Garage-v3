@@ -21,4 +21,6 @@ public interface IHandler
     ParkingResult ParkVehicle( IVehicle vehicle, int? spotNumber = null);
 
     (IReadOnlyList<ParkedVehicleInfo> Vehicles, OperationResult Result) SearchVehicles(VehicleSearchCriteria criteria);
+
+    OperationResult InitializeVehicles(IEnumerable<IVehicle> initialVehicles);
 }

@@ -269,5 +269,17 @@ namespace Garage_V3.Services
                 actual,
                 expected.Trim(),
                 StringComparison.OrdinalIgnoreCase);
+
+        public OperationResult InitializeVehicles(IEnumerable<IVehicle> initialVehicles)
+        {
+            if (garage is null)
+            {
+                return OperationResult.Failed(
+                    "Create a garage first.",
+                    OperationError.NoGarage);
+            }
+
+            return garage.InitializeVehicles(initialVehicles);
+        }
     }
 }
