@@ -1,0 +1,17 @@
+{
+  "Version": 1,
+  "Name": "Invalid registration garage",
+  "Capacity": 2,
+  "Vehicles": [
+    {
+      "VehicleType": "Car",
+      "RegistrationNumber": "ABC123",
+      "CountryCode": "SWE"
+    },
+    {
+      "VehicleType": "Motorcycle",
+      "RegistrationNumber": "NOT-A-REG",
+      "CountryCode": "SWE"
+    }
+  ]
+}

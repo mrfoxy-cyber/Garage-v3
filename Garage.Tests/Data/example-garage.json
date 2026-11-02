@@ -1,0 +1,37 @@
+{
+  "Version": 1,
+  "Name": "Test garage",
+  "Capacity": 5,
+  "Vehicles": [
+    {
+      "VehicleType": "Car",
+      "RegistrationNumber": "ABC123",
+      "CountryCode": "SWE",
+      "Color": "Red",
+      "NumberOfWheels": 4,
+      "Manufacturer": "Volvo",
+      "Model": "V70",
+      "ManufacturingYear": 2020
+    },
+    {
+      "VehicleType": "Motorcycle",
+      "RegistrationNumber": "MCY123",
+      "CountryCode": "SWE"
+    },
+    {
+      "VehicleType": "Bus",
+      "RegistrationNumber": "BUS123",
+      "CountryCode": "SWE"
+    },
+    {
+      "VehicleType": "Boat",
+      "RegistrationNumber": "SABC",
+      "CountryCode": "SWE"
+    },
+    {
+      "VehicleType": "Airplane",
+      "RegistrationNumber": "SE-ABC",
+      "CountryCode": "SWE"
+    }
+  ]
+}

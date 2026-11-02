@@ -1,0 +1,18 @@
+{
+  "Version": 1,
+  "Name": "Invalid wheel count garage",
+  "Capacity": 2,
+  "Vehicles": [
+    {
+      "VehicleType": "Car",
+      "RegistrationNumber": "ABC123",
+      "CountryCode": "SWE"
+    },
+    {
+      "VehicleType": "Car",
+      "RegistrationNumber": "DEF456",
+      "CountryCode": "SWE",
+      "NumberOfWheels": -1
+    }
+  ]
+}

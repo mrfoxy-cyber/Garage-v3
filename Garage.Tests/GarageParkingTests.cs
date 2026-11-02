@@ -1,204 +1,315 @@
-using Garage.Models;
-using Garage.Services;
-using Garage.Tests.Fixtures;
+using Garage.Factories;
 using Garage.Vehicles;
-using Garage.Vehicles.Components;
-using VehicleGarage = Garage.Models.Garage;
+using Garage_V3.results;
+using Vehicles.Interfaces;
+using Xunit;
+using VehicleGarage = Garage_V3.Garage<Vehicles.Interfaces.IVehicle>;
 
 namespace Garage.Tests;
 
-public class GarageParkingTests
+public sealed class GarageParkingTests
 {
     [Fact]
-    public void Park_AddsVehicleAndUpdatesSpaceCounts()
+    public void ParkVehicle_AvailableSpace_AddsVehicleAndUpdatesCounts()
     {
+        // Arrange
         VehicleGarage garage = new("Test garage", 2);
-        Vehicle car = VehicleFixtures.CreateCar();
+        IVehicle vehicle = CreateVehicle();
 
-        var result = garage.Park(car);
+        // Act
+        var result = garage.ParkVehicle(vehicle);
 
-        Assert.True(result.Success);
-        Assert.Contains(car, garage.Vehicles);
+        // Assert
+        Assert.True(result.Success, result.Message);
+        Assert.Null(result.Error);
+        Assert.Equal(1, result.SpotNumber);
+        var entry = Assert.Single(garage.Vehicles);
+        Assert.Same(vehicle, entry.Vehicle);
+        Assert.Equal(1, entry.SpotNumber);
         Assert.Equal(1, garage.OccupiedSpaces);
         Assert.Equal(1, garage.AvailableSpaces);
     }
 
     [Fact]
-    public void Park_FailsWhenGarageIsFull()
+    public void ParkVehicle_GarageFull_ReturnsFailureWithoutChangingContents()
     {
+        // Arrange
         VehicleGarage garage = new("Test garage", 1);
-        garage.Park(VehicleFixtures.CreateCar("ONE123"));
+        IVehicle first = CreateVehicle("ONE123");
+        var firstResult = garage.ParkVehicle(first);
+        Assert.True(firstResult.Success, firstResult.Message);
 
-        var result = garage.Park(
-            VehicleFixtures.CreateCar("TWO123"));
+        // Act
+        var result = garage.ParkVehicle(CreateVehicle("TWO123"));
 
+        // Assert
         Assert.False(result.Success);
-        Assert.Single(garage.Vehicles);
-    }
-
-    [Fact]
-    public void Park_RejectsDuplicateRegistrationIgnoringCase()
-    {
-        VehicleGarage garage = new("Test garage", 2);
-        garage.Park(VehicleFixtures.CreateCar("ABC123"));
-
-        var result = garage.Park(
-            VehicleFixtures.CreateCar("abc123"));
-
-        Assert.False(result.Success);
-        Assert.Single(garage.Vehicles);
-    }
-
-    [Fact]
-    public void ParkAtSpot_UsesRequestedSpot()
-    {
-        VehicleGarage garage = new("Test garage", 3);
-        Vehicle car = VehicleFixtures.CreateCar();
-
-        var result = garage.Park(car, spot: 2);
-        var parkedVehicle = Assert.Single(garage.ParkedVehicles);
-
-        Assert.True(result.Success);
-        Assert.Equal(2, parkedVehicle.SpotNumber);
-        Assert.Same(car, parkedVehicle.Vehicle);
-    }
-
-    [Fact]
-    public void ParkAtSpot_FailsWhenSpotIsOccupied()
-    {
-        VehicleGarage garage = new("Test garage", 2);
-        garage.Park(VehicleFixtures.CreateCar("ONE123"), spot: 1);
-
-        var result = garage.Park(
-            VehicleFixtures.CreateCar("TWO123"),
-            spot: 1);
-
-        Assert.False(result.Success);
-        Assert.Single(garage.Vehicles);
-    }
-
-    [Fact]
-    public void Park_RejectsNullVehicle()
-    {
-        VehicleGarage garage = new("Test garage", 2);
-
-        Exception exception = Assert.Throws(
-            typeof(ArgumentNullException),
-            () => garage.Park(null!));
-
-        Assert.Contains("vehicle", exception.Message);
-        Assert.Empty(garage.Vehicles);
-    }
-
-    [Fact]
-    public void ParkAtSpot_RejectsNullVehicle()
-    {
-        VehicleGarage garage = new("Test garage", 2);
-
-        Exception exception = Assert.Throws(
-            typeof(ArgumentNullException),
-            () => garage.Park(null!, spot: 1));
-
-        Assert.Contains("vehicle", exception.Message);
-        Assert.Empty(garage.Vehicles);
-    }
-
-    [Fact]
-    public void Park_SkipsOpenSpotThatIsTooSmall()
-    {
-        VehicleGarage garage = new("Sized garage",
-        [
-            new Dimensions(4, 2, 2),
-            new Dimensions(5, 2, 2)
-        ]);
-        Vehicle car = VehicleFixtures.CreateCar();
-
-        Assert.Equal([2], garage.AvailableSpotsFor(car));
-
-        var result = garage.Park(car);
-
-        Assert.True(result.Success);
-        Assert.Equal(2, result.SpotNumber);
-        Assert.Equal(2, Assert.Single(garage.ParkedVehicles).SpotNumber);
-        Assert.Empty(garage.AvailableSpotsFor(car));
-    }
-
-    [Fact]
-    public void ParkAtSpot_RejectsVehicleThatDoesNotFitAndKeepsSpotFree()
-    {
-        VehicleGarage garage = new("Sized garage",
-        [
-            new Dimensions(2, 5, 2),
-            new Dimensions(4.8, 1.8, 1.5)
-        ]);
-        Vehicle car = VehicleFixtures.CreateCar();
-
-        var tooSmall = garage.Park(car, spot: 1);
-        var exactFit = garage.Park(car, spot: 2);
-
-        Assert.False(tooSmall.Success);
-        Assert.Contains("does not fit", tooSmall.Message);
-        Assert.True(exactFit.Success);
+        Assert.Equal(OperationError.GarageFull, result.Error);
+        Assert.Null(result.SpotNumber);
+        Assert.Same(first, Assert.Single(garage.Vehicles).Vehicle);
         Assert.Equal(1, garage.OccupiedSpaces);
-        Assert.Equal(2, Assert.Single(garage.ParkedVehicles).SpotNumber);
-    }
-
-    [Fact]
-    public void Remove_MakesSizedSpotAvailableAgain()
-    {
-        VehicleGarage garage = new("Sized garage", [new Dimensions(5, 2, 2)]);
-        Vehicle first = VehicleFixtures.CreateCar("ONE123");
-        Vehicle second = VehicleFixtures.CreateCar("TWO123");
-
-        Assert.True(garage.Park(first).Success);
-        Assert.True(garage.Remove(first.RegistrationNumber).Success);
-
-        Assert.Equal([1], garage.AvailableSpotsFor(second));
-        Assert.True(garage.Park(second).Success);
-        Assert.Equal(new Dimensions(5, 2, 2), Assert.Single(garage.SpotDetails).Dimensions);
+        Assert.Equal(0, garage.AvailableSpaces);
     }
 
     [Theory]
-    [InlineData(0, 2, 2)]
-    [InlineData(-1, 2, 2)]
-    [InlineData(double.NaN, 2, 2)]
-    [InlineData(2, double.PositiveInfinity, 2)]
-    [InlineData(2, 2, double.NegativeInfinity)]
-    public void Dimensions_RejectsInvalidMeasurements(
-        double lengthMeters,
-        double widthMeters,
-        double heightMeters)
+    [InlineData("ABC123")]
+    [InlineData("abc123")]
+    [InlineData("AbC123")]
+    public void ParkVehicle_DuplicateRegistration_ReturnsFailureIgnoringCase(string duplicateRegistration)
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new Dimensions(lengthMeters, widthMeters, heightMeters));
+        // Arrange
+        VehicleGarage garage = new("Test garage", 2);
+        IVehicle first = CreateVehicle("ABC123");
+        Assert.True(garage.ParkVehicle(first).Success);
+
+        // The test vehicle preserves casing, so this tests Garage rather than Vehicle normalization.
+        IVehicle duplicate = CreateVehicle(duplicateRegistration);
+
+        // Act
+        var result = garage.ParkVehicle(duplicate);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(OperationError.DuplicateRegistration, result.Error);
+        Assert.Null(result.SpotNumber);
+        Assert.Same(first, Assert.Single(garage.Vehicles).Vehicle);
+        Assert.Equal(1, garage.AvailableSpaces);
     }
 
     [Fact]
-    public void Constructor_RejectsMissingSpotDimensions()
+    public void ParkVehicle_RequestedSpotAvailable_UsesRequestedSpot()
     {
-        IReadOnlyList<Dimensions> sizes = [null!];
+        // Arrange
+        VehicleGarage garage = new("Test garage", 3);
+        IVehicle vehicle = CreateVehicle();
 
-        Assert.Throws<ArgumentException>(() =>
-            new VehicleGarage("Sized garage", sizes));
+        // Act
+        var result = garage.ParkVehicle(vehicle, spotNumber: 2);
+
+        // Assert
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(2, result.SpotNumber);
+        var entry = Assert.Single(garage.Vehicles);
+        Assert.Equal(2, entry.SpotNumber);
+        Assert.Same(vehicle, entry.Vehicle);
+        Assert.Equal(1, garage.OccupiedSpaces);
+        Assert.Equal(2, garage.AvailableSpaces);
     }
 
     [Fact]
-    public void ParkingMenu_OnlyOffersVehiclesThatFitTheChosenSpot()
+    public void ParkVehicle_RequestedSpotOccupied_ReturnsFailureAndKeepsOriginalVehicle()
     {
-        VehicleGarage garage = new("Sized garage",
+        // Arrange
+        VehicleGarage garage = new("Test garage", 2);
+        IVehicle first = CreateVehicle("ONE123");
+        Assert.True(garage.ParkVehicle(first, spotNumber: 1).Success);
+
+        // Act
+        var result = garage.ParkVehicle(CreateVehicle("TWO123"), spotNumber: 1);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(OperationError.SpotOccupied, result.Error);
+        Assert.Null(result.SpotNumber);
+        var entry = Assert.Single(garage.Vehicles);
+        Assert.Equal(1, entry.SpotNumber);
+        Assert.Same(first, entry.Vehicle);
+        Assert.Equal(1, garage.AvailableSpaces);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(0)]
+    [InlineData(4)]
+    public void ParkVehicle_RequestedSpotOutsideCapacity_ReturnsFailureAndDoesNotConsumeSpace(int spotNumber)
+    {
+        // Arrange
+        VehicleGarage garage = new("Test garage", 3);
+        IVehicle vehicle = CreateVehicle();
+
+        // Act
+        var result = garage.ParkVehicle(vehicle, spotNumber);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(OperationError.InvalidSpot, result.Error);
+        Assert.Null(result.SpotNumber);
+        Assert.Empty(garage.Vehicles);
+        Assert.Equal(0, garage.OccupiedSpaces);
+        Assert.Equal(3, garage.AvailableSpaces);
+
+        var retry = garage.ParkVehicle(vehicle, spotNumber: 1);
+        Assert.True(retry.Success, retry.Message);
+    }
+
+    [Fact]
+    public void ParkVehicle_NullVehicle_ReturnsValidationFailureWithoutChangingCounts()
+    {
+        // Arrange
+        VehicleGarage garage = new("Test garage", 2);
+
+        // Act
+        var result = garage.ParkVehicle(null!);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(OperationError.ValidationFailed, result.Error);
+        Assert.Empty(garage.Vehicles);
+        Assert.Equal(0, garage.OccupiedSpaces);
+        Assert.Equal(2, garage.AvailableSpaces);
+    }
+
+    [Fact]
+    public void ParkVehicle_NullVehicleWithRequestedSpot_ReturnsValidationFailureAndKeepsSpotFree()
+    {
+        // Arrange
+        VehicleGarage garage = new("Test garage", 2);
+
+        // Act
+        var result = garage.ParkVehicle(null!, spotNumber: 1);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(OperationError.ValidationFailed, result.Error);
+        Assert.Empty(garage.Vehicles);
+        Assert.Equal(1, garage.FindAvailableSpot());
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("\t")]
+    public void ParkVehicle_BlankRegistration_ReturnsValidationFailure(string registration)
+    {
+        // Arrange
+        VehicleGarage garage = new("Test garage", 2);
+        IVehicle vehicle = CreateVehicle(registration);
+
+        // Act
+        var result = garage.ParkVehicle(vehicle);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(OperationError.ValidationFailed, result.Error);
+        Assert.Empty(garage.Vehicles);
+        Assert.Equal(2, garage.AvailableSpaces);
+    }
+
+    [Fact]
+    public void ParkVehicle_NoRequestedSpot_UsesLowestAvailableSpotBetweenOccupiedSpots()
+    {
+        // Arrange
+        VehicleGarage garage = new("Test garage", 4);
+        Assert.True(garage.ParkVehicle(CreateVehicle("ONE123"), spotNumber: 3).Success);
+        Assert.True(garage.ParkVehicle(CreateVehicle("TWO123"), spotNumber: 1).Success);
+        IVehicle third = CreateVehicle("THR123");
+
+        // Act
+        var result = garage.ParkVehicle(third);
+
+        // Assert
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(2, result.SpotNumber);
+        Assert.Contains(garage.Vehicles, entry => entry.SpotNumber == 2 && ReferenceEquals(entry.Vehicle, third));
+        Assert.Equal(3, garage.OccupiedSpaces);
+        Assert.Equal(1, garage.AvailableSpaces);
+    }
+
+    [Fact]
+    public void RemoveVehicle_ParkedVehicle_ReleasesItsSpotForTheNextVehicle()
+    {
+        // Arrange
+        VehicleGarage garage = new("Test garage", 1);
+        IVehicle first = CreateVehicle("ONE123");
+        IVehicle second = CreateVehicle("TWO123");
+        Assert.True(garage.ParkVehicle(first).Success);
+
+        // Act
+        var removal = garage.RemoveVehicle("one123");
+
+        // Assert
+        Assert.True(removal.Success, removal.Message);
+        Assert.Empty(garage.Vehicles);
+        Assert.Equal(0, garage.OccupiedSpaces);
+        Assert.Equal(1, garage.AvailableSpaces);
+
+        var parking = garage.ParkVehicle(second);
+        Assert.True(parking.Success, parking.Message);
+        Assert.Equal(1, parking.SpotNumber);
+        Assert.Same(second, Assert.Single(garage.Vehicles).Vehicle);
+    }
+
+    [Fact]
+    public void FindAvailableSpot_EmptyGarage_ReturnsFirstSpot()
+    {
+        // Arrange
+        VehicleGarage garage = new("Test garage", 3);
+
+        // Act
+        int? spot = garage.FindAvailableSpot();
+
+        // Assert
+        Assert.Equal(1, spot);
+        Assert.Empty(garage.Vehicles);
+    }
+
+    [Fact]
+    public void FindAvailableSpot_FullGarage_ReturnsNull()
+    {
+        // Arrange
+        VehicleGarage garage = new("Test garage", 1);
+        Assert.True(garage.ParkVehicle(CreateVehicle()).Success);
+
+        // Act
+        int? spot = garage.FindAvailableSpot();
+
+        // Assert
+        Assert.Null(spot);
+    }
+
+    [Fact]
+    public void ParkVehicle_MixedVehicleTypes_AcceptsEachAndEnumeratesVehiclesWithoutSpotTuples()
+    {
+        // Arrange
+        IVehicle[] vehicles =
         [
-            new Dimensions(5, 2, 2),
-            new Dimensions(15, 4, 4)
-        ]);
-        Vehicle car = VehicleFixtures.CreateCar();
-        Vehicle boat = VehicleFixtures.CreateBoat();
-        GarageService service = new([garage], [car, boat]);
+            CarFactory.CreateCar("ABC123", CountryCode.SWE),
+            MotorcycleFactory.CreateMotorcycle("MCY123", CountryCode.SWE),
+            BusFactory.CreateBus("BUS123", CountryCode.SWE),
+            BoatFactory.CreateBoat("SABC", CountryCode.SWE),
+            AirplaneFactory.CreateAirplane("SE-ABC", CountryCode.SWE),
+            TruckFactory.CreateTruck("TRK123", CountryCode.SWE)
+        ];
 
-        Assert.Equal([car], service.GetParkableVehicles(garage, spotNumber: 1));
-        Assert.Equal([car, boat], service.GetParkableVehicles(garage));
+        VehicleGarage garage = new("Mixed garage", vehicles.Length);
 
-        garage.Park(car, spot: 1);
+        // Act
+        foreach (IVehicle vehicle in vehicles)
+        {
+            var result = garage.ParkVehicle(vehicle);
+            Assert.True(result.Success, result.Message);
+        }
 
-        Assert.Equal([boat], service.GetParkableVehicles(garage));
+        IVehicle[] enumerated = garage.ToArray();
+
+        // Assert
+        Assert.Equal(vehicles.Length, enumerated.Length);
+        Assert.Equal(vehicles.Length, garage.OccupiedSpaces);
+        Assert.Equal(0, garage.AvailableSpaces);
+
+        for (int index = 0; index < vehicles.Length; index++)
+        {
+            Assert.Same(vehicles[index], enumerated[index]);
+            Assert.Equal(index + 1, garage.Vehicles[index].SpotNumber);
+        }
+    }
+
+    private static IVehicle CreateVehicle(string registration = "ABC123") => new TestVehicle { RegistrationNumber = registration };
+
+    // Keeps garage unit tests independent of rich factory data and registration normalization.
+    private sealed class TestVehicle : IVehicle
+    {
+        public string RegistrationNumber { get; init; } = string.Empty;
+        public CountryCode CountryCode { get; set; } = CountryCode.SWE;
     }
 }

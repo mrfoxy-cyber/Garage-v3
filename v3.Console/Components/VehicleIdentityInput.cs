@@ -1,8 +1,5 @@
 using Garage.Terminal.Components.Shared;
-using Garage.Terminal.Contracts;
 using Garage.Terminal.Theming;
-using Garage.Vehicles;
-using Garage.Vehicles.Types;
 using Terminal.Gui.Views;
 
 namespace Garage.Terminal.Components;

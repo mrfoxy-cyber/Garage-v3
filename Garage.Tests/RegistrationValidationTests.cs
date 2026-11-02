@@ -1,56 +1,47 @@
-using Garage.ConsoleApp.Drafts;
-using Garage.Persistence.Json;
+using Garage.Factories;
+using Garage.Manager;
+using Garage.Manager.Persistence.Json;
 using Garage.Tests.Fixtures;
 using Garage.Vehicles;
+using Garage_V3.results;
+using Garage.Manager.Persistence;
 
 namespace Garage.Tests;
 
 public class RegistrationValidationTests
 {
     [Theory]
-    [InlineData("ABC123")]
-    [InlineData("ABC12D")]
-    [InlineData(" abc-123 ")]
-    public void RoadVehicle_NormalizesSupportedRegistrations(string number)
+    [InlineData("ABC123", CountryCode.SWE)]
+    [InlineData("ABC12D", CountryCode.SWE)]
+    [InlineData(" abc-123 ", CountryCode.SWE)]
+    public void RoadVehicle_NormalizesSupportedRegistrations(string number, CountryCode countryCode)
     {
-        var car = VehicleFixtures.CreateCar(number);
+        var car = CarFactory.CreateCar(number, countryCode);
 
         Assert.Equal(number.Trim().ToUpperInvariant().Replace("-", ""), car.RegistrationNumber);
-        Assert.Equal(CountryCode.SWE, car.CountryCode);
+        Assert.Equal(countryCode, car.CountryCode);
     }
 
     [Theory]
-    [InlineData("")]
-    [InlineData(" ")]
-    [InlineData("---")]
-    [InlineData("MATCH1")]
-    [InlineData("ABC1234")]
-    public void RoadVehicle_RejectsInvalidRegistrations(string number)
+    [InlineData("", CountryCode.SWE)]
+    [InlineData(" ", CountryCode.SWE)]
+    [InlineData("---", CountryCode.SWE)]
+    [InlineData("MATCH1", CountryCode.SWE)]
+    [InlineData("ABC1234", CountryCode.SWE)]
+    public void RoadVehicle_RejectsInvalidRegistrations(string number, CountryCode countryCode)
     {
-        Assert.ThrowsAny<ArgumentException>(() => VehicleFixtures.CreateCar(number));
+        Assert.ThrowsAny<ArgumentException>(() => CarFactory.CreateCar(number, countryCode));
     }
 
     [Fact]
     public void Factory_UsesTheExplicitCountry()
     {
-        var car = VehicleFixtures.CreateCar("AB-123-CD", countryCode: CountryCode.FRA);
+        var car = CarFactory.CreateCar("AB-123-CD", countryCode: CountryCode.FRA);
 
         Assert.Equal(CountryCode.FRA, car.CountryCode);
         Assert.Equal("AB123CD", car.RegistrationNumber);
         Assert.Throws<ArgumentException>(() =>
-            VehicleFixtures.CreateCar("AB-123-CD", countryCode: CountryCode.SWE));
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void Initializer_ValidatesUsingBothPropertiesRegardlessOfOrder(bool countryFirst)
-    {
-        var car = CreateCar("AB-123-CD", CountryCode.FRA, countryFirst);
-
-        Assert.Equal("AB123CD", car.RegistrationNumber);
-        Assert.Equal(CountryCode.FRA, car.CountryCode);
-        Assert.Throws<ArgumentException>(() => CreateCar("ABC123", CountryCode.FRA, countryFirst));
+            CarFactory.CreateCar("AB-123-CD", countryCode: CountryCode.SWE));
     }
 
     [Theory]
@@ -59,7 +50,7 @@ public class RegistrationValidationTests
     public void Vehicle_RejectsMissingOrUndefinedCountry(CountryCode countryCode)
     {
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            VehicleFixtures.CreateCar(countryCode: countryCode));
+            CarFactory.CreateCar("AB-123-CD", countryCode: countryCode));
     }
 
     [Fact]
@@ -85,59 +76,78 @@ public class RegistrationValidationTests
             registrationNumber: "D-ABCD", countryCode: CountryCode.SWE));
     }
 
-    [Fact]
-    public void Draft_RequiresCountryAndClearsItAfterUse()
+
+    [Theory]
+    [InlineData("example-garage.json", 5)]
+    public void LoadGarage_ValidData_LoadsExpectedVehicles(string fileName, int expectedCount)
     {
-        var draft = new CarDraft();
-        Assert.Contains("country of registration", draft.GetMissingFields());
+        // Arrange
+        GarageManager manager = new();
+        string path = Path.Combine(AppContext.BaseDirectory, "Data", fileName);
+        Assert.True(File.Exists(path), $"Missing test data: {path}");
 
-        draft.CountryCode = CountryCode.SWE;
-        Assert.DoesNotContain("country of registration", draft.GetMissingFields());
+        // Act
+        var (garageId, loadResult) = manager.LoadGarage(path);
 
-        draft.Clear();
-        Assert.Null(draft.CountryCode);
+        // Assert
+        Assert.True(loadResult.Success, loadResult.Message);
+        Assert.NotNull(garageId);
+
+        var (vehicles, vehiclesResult) = manager.GetVehicles(garageId);
+        Assert.True(vehiclesResult.Success, vehiclesResult.Message);
+        Assert.Equal(expectedCount, vehicles.Count);
+        Assert.All(vehicles, entry => Assert.Equal(CountryCode.SWE, entry.Vehicle.CountryCode));
+
+        var (info, infoResult) = manager.GetGarageInfo(garageId);
+        Assert.True(infoResult.Success, infoResult.Message);
+        Assert.NotNull(info);
+        Assert.Equal(expectedCount, info.OccupiedSpaces);
     }
 
     [Theory]
-    [InlineData("vehicles.json", 30)]
-    [InlineData("created-vehicles.json", 12)]
-    public void SampleData_LoadsWithValidRegistrations(string fileName, int expectedCount)
+    [InlineData("invalid-registration-garage.json", OperationError.ValidationFailed)]
+    [InlineData("invalid-wheel-count-garage.json", OperationError.ValidationFailed)]
+    [InlineData("duplicate-registrations-garage.json", OperationError.DuplicateRegistration)]
+    [InlineData("over-capacity-garage.json", OperationError.GarageFull)]
+    public void LoadGarage_InvalidData_ReturnsExpectedFailureAndLeavesExistingGarageUnchanged(string fileName, OperationError expectedError)
     {
-        var vehicles = VehicleJsonLoader.LoadVehicles(fileName);
+        // Arrange
+        GarageManager manager = new();
+        var (existingId, creationResult) = manager.CreateGarage("Existing garage", 2);
+        Assert.True(creationResult.Success, creationResult.Message);
+        Assert.NotNull(existingId);
 
-        Assert.Equal(expectedCount, vehicles.Count);
-        Assert.All(vehicles, vehicle => Assert.Equal(CountryCode.SWE, vehicle.CountryCode));
+        var existingVehicle = CarFactory.CreateCar("OLD123", CountryCode.SWE);
+        var parkingResult = manager.ParkVehicle(existingId, existingVehicle);
+        Assert.True(parkingResult.Success, parkingResult.Message);
+
+        string path = Path.Combine(AppContext.BaseDirectory, "Data", fileName);
+        Assert.True(File.Exists(path), $"Missing test data: {path}");
+
+        // The file must parse successfully: this test targets model/garage validation, not malformed JSON.
+        GarageFileData data = GarageJsonLoader.Read(path);
+        Assert.Equal(2, data.Vehicles.Count);
+
+        // Act
+        var (loadedId, loadResult) = manager.LoadGarage(path);
+
+        // Assert
+        Assert.False(loadResult.Success);
+        Assert.Equal(expectedError, loadResult.Error);
+        Assert.Null(loadedId);
+        Assert.False(string.IsNullOrWhiteSpace(loadResult.Message));
+
+        var (garages, garagesResult) = manager.GetGarages();
+        Assert.True(garagesResult.Success, garagesResult.Message);
+        Assert.Equal(existingId, Assert.Single(garages).Id);
+
+        var (vehicles, vehiclesResult) = manager.GetVehicles(existingId);
+        Assert.True(vehiclesResult.Success, vehiclesResult.Message);
+        Assert.Same(existingVehicle, Assert.Single(vehicles).Vehicle);
+
+        // ABC123 was the first valid entry in every failed file. It must not remain reserved.
+        var retry = manager.ParkVehicle(existingId, CarFactory.CreateCar("ABC123", CountryCode.SWE));
+        Assert.True(retry.Success, retry.Message);
     }
 
-    private static Car CreateCar(string number, CountryCode countryCode, bool countryFirst)
-    {
-        var template = VehicleFixtures.CreateCar();
-
-        if (countryFirst)
-        {
-            return new Car
-            {
-                CountryCode = countryCode,
-                RegistrationNumber = number,
-                Manufacturer = template.Manufacturer,
-                Model = template.Model,
-                ManufacturingYear = template.ManufacturingYear,
-                Color = template.Color,
-                Vin = template.Vin,
-                Specification = template.Specification
-            };
-        }
-
-        return new Car
-        {
-            RegistrationNumber = number,
-            CountryCode = countryCode,
-            Manufacturer = template.Manufacturer,
-            Model = template.Model,
-            ManufacturingYear = template.ManufacturingYear,
-            Color = template.Color,
-            Vin = template.Vin,
-            Specification = template.Specification
-        };
-    }
 }

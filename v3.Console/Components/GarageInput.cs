@@ -1,5 +1,4 @@
 using Garage.Terminal.Interfaces;
-using Garage.Terminal.Layout;
 using System.Drawing;
 using Terminal.Gui.Text;
 using Terminal.Gui.ViewBase;

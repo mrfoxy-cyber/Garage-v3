@@ -1,129 +1,189 @@
-using Garage.ConsoleApp.Display;
+using Garage.Engines;
+using Garage.Engines.Specifications;
 using Garage.Tests.Fixtures;
 using Garage.Vehicles;
 using Garage.Vehicles.Specifications;
+using Xunit;
 
 namespace Garage.Tests;
 
-[CollectionDefinition("Console output", DisableParallelization = true)]
-public class ConsoleOutputCollection
+public sealed class VehicleEngineTests
 {
-}
-
-[Collection("Console output")]
-public class VehicleEngineTests
-{
-    private static List<Vehicle> CreateVehicles() =>
-    [
-        VehicleFixtures.CreateCar(),
-        VehicleFixtures.CreateMotorcycle(),
-        VehicleFixtures.CreateBus(),
-        VehicleFixtures.CreateAirplane(),
-        VehicleFixtures.CreateBoat(),
-        VehicleFixtures.CreateTruck()
-    ];
-
-    [Fact]
-    public void AddEngine_PreservesExistingEngineAndAddsNewEngine()
+    public static IEnumerable<object[]> VehicleTypes()
     {
-        foreach (Vehicle vehicle in CreateVehicles())
-        {
-            var original = Assert.Single(vehicle.SpecificationDetails.Engines);
-            var added = EngineFixtures.CreateEngine(serialNumber: "ADDED123");
-
-            vehicle.SpecificationDetails.AddEngine(added);
-
-            Assert.Equal(2, vehicle.SpecificationDetails.Engines.Count);
-            Assert.Contains(original, vehicle.SpecificationDetails.Engines);
-            Assert.Contains(added, vehicle.SpecificationDetails.Engines);
-            Assert.Same(added, vehicle.SpecificationDetails.FindEngine("ADDED123"));
-        }
+        yield return ["Car"];
+        yield return ["Motorcycle"];
+        yield return ["Bus"];
+        yield return ["Airplane"];
+        yield return ["Boat"];
+        yield return ["Truck"];
     }
 
-    [Fact]
-    public void RemoveEngine_RemovesOnlySelectedEngine()
+    [Theory]
+    [MemberData(nameof(VehicleTypes))]
+    public void AddEngine_ExistingEnginePresent_PreservesOriginalAndAddsNewEngine(string vehicleType)
     {
-        foreach (Vehicle vehicle in CreateVehicles())
-        {
-            var original = Assert.Single(vehicle.SpecificationDetails.Engines);
-            var added = EngineFixtures.CreateEngine(serialNumber: "KEEP123");
-            vehicle.SpecificationDetails.AddEngine(added);
+        // Arrange
+        VehicleSpecification specification = CreateSpecification(vehicleType);
+        Engine original = Assert.Single(specification.Engines);
+        Engine added = EngineFixtures.CreateEngine(serialNumber: "ADDED123");
 
-            bool removed = vehicle.SpecificationDetails.RemoveEngine(original);
+        // Act
+        specification.AddEngine(added);
 
-            Assert.True(removed);
-            Assert.Same(added, Assert.Single(vehicle.SpecificationDetails.Engines));
-            Assert.Null(vehicle.SpecificationDetails.FindEngine(original.SerialNumber));
-            Assert.False(vehicle.SpecificationDetails.RemoveEngine(original));
-            Assert.Same(added, Assert.Single(vehicle.SpecificationDetails.Engines));
-        }
+        // Assert
+        Assert.Equal(2, specification.Engines.Count);
+        Assert.Same(original, specification.FindEngine(original.SerialNumber));
+        Assert.Same(added, specification.FindEngine("ADDED123"));
+        Assert.Equal(1, specification.FindEngineIndex("ADDED123"));
     }
 
-    [Fact]
-    public void AddEngine_RejectsEngineBeyondCapacity()
+    [Theory]
+    [MemberData(nameof(VehicleTypes))]
+    public void RemoveEngine_TwoEnginesPresent_RemovesOnlySelectedEngine(string vehicleType)
     {
-        var car = VehicleFixtures.CreateCar();
-        for (int i = 1; i < VehicleSpecification.MaximumNumberOfEngines; i++)
-        {
-            car.Specification.AddEngine(
-                EngineFixtures.CreateEngine(serialNumber: $"ENG-{i}"));
-        }
-        var extra = EngineFixtures.CreateEngine(serialNumber: "EXTRA");
+        // Arrange
+        VehicleSpecification specification = CreateSpecification(vehicleType);
+        Engine original = Assert.Single(specification.Engines);
+        Engine remaining = EngineFixtures.CreateEngine(serialNumber: "KEEP123");
+        specification.AddEngine(remaining);
 
-        Assert.Throws<InvalidOperationException>(() => car.Specification.AddEngine(extra));
+        // Act
+        bool removed = specification.RemoveEngine(original);
 
-        Assert.Equal(VehicleSpecification.MaximumNumberOfEngines, car.Specification.Engines.Count);
-        Assert.DoesNotContain(extra, car.Specification.Engines);
+        // Assert
+        Assert.True(removed);
+        Assert.Same(remaining, Assert.Single(specification.Engines));
+        Assert.Null(specification.FindEngine(original.SerialNumber));
+        Assert.Equal(-1, specification.FindEngineIndex(original.SerialNumber));
+
+        Assert.False(specification.RemoveEngine(original));
+        Assert.Same(remaining, Assert.Single(specification.Engines));
     }
 
-    [Fact]
-    public void PrintVehicle_ReflectsAddedAndRemovedEngines()
+    [Theory]
+    [MemberData(nameof(VehicleTypes))]
+    public void AddEngine_CapacityReached_ThrowsAndLeavesExistingEnginesUnchanged(string vehicleType)
     {
-        foreach (Vehicle vehicle in CreateVehicles())
-        {
-            var original = Assert.Single(vehicle.SpecificationDetails.Engines);
-            var added = EngineFixtures.CreateEngine(
-                serialNumber: "PRINT123", model: "Test engine", horsePower: 240);
-            vehicle.SpecificationDetails.AddEngine(added);
+        // Arrange
+        VehicleSpecification specification = CreateSpecification(vehicleType);
+        Engine original = Assert.Single(specification.Engines);
 
-            string beforeRemoval = CaptureVehicle(vehicle);
+        for (int index = 1; index < VehicleSpecification.MaximumNumberOfEngines; index++)
+            specification.AddEngine(EngineFixtures.CreateEngine(serialNumber: $"LIMIT-{index}"));
 
-            Assert.Contains("Spot: 3", beforeRemoval);
-            Assert.Contains($"Registration number: {vehicle.RegistrationNumber}", beforeRemoval);
-            Assert.Contains($"Serial number: {original.SerialNumber}", beforeRemoval);
-            Assert.Contains("Serial number: PRINT123", beforeRemoval);
-            Assert.Contains("Model: Test engine", beforeRemoval);
-            Assert.Contains("Fuel type: Gasoline", beforeRemoval);
-            Assert.Contains("Horsepower: 240", beforeRemoval);
-            Assert.Contains("Total displacement: 2000 cc", beforeRemoval);
-            Assert.Contains("Cylinder count: 4", beforeRemoval);
-            Assert.DoesNotContain("No engines.", beforeRemoval);
+        Engine[] before = specification.Engines.ToArray();
+        Engine extra = EngineFixtures.CreateEngine(serialNumber: "EXTRA");
 
-            Assert.True(vehicle.SpecificationDetails.RemoveEngine(added));
-            string afterRemoval = CaptureVehicle(vehicle);
-            Assert.DoesNotContain("Serial number: PRINT123", afterRemoval);
-            Assert.Contains($"Serial number: {original.SerialNumber}", afterRemoval);
+        // Act
+        Action act = () => specification.AddEngine(extra);
 
-            Assert.True(vehicle.SpecificationDetails.RemoveEngine(original));
-            string empty = CaptureVehicle(vehicle);
-            Assert.Contains("No engines.", empty);
-            Assert.DoesNotContain("Serial number:", empty);
-        }
+        // Assert
+        Assert.Throws<InvalidOperationException>(act);
+        Assert.Equal(VehicleSpecification.MaximumNumberOfEngines, specification.Engines.Count);
+        Assert.Equal(before, specification.Engines);
+        Assert.Same(original, specification.FindEngine(original.SerialNumber));
+        Assert.Null(specification.FindEngine("EXTRA"));
     }
 
-    private static string CaptureVehicle(Vehicle vehicle)
+    [Theory]
+    [MemberData(nameof(VehicleTypes))]
+    public void FindEngine_SerialHasDifferentCase_ReturnsSameEngineAndIndex(string vehicleType)
     {
-        TextWriter previous = Console.Out;
-        using var output = new StringWriter();
-        try
+        // Arrange
+        VehicleSpecification specification = CreateSpecification(vehicleType);
+        Engine original = Assert.Single(specification.Engines);
+        string serialNumber = original.SerialNumber.ToLowerInvariant();
+
+        // Act
+        Engine? found = specification.FindEngine(serialNumber);
+        int index = specification.FindEngineIndex(serialNumber);
+
+        // Assert
+        Assert.Same(original, found);
+        Assert.Equal(0, index);
+    }
+
+    [Theory]
+    [MemberData(nameof(VehicleTypes))]
+    public void RemoveEngine_LastEngineRemoved_LeavesEmptyCollectionAndNoLookupMatch(string vehicleType)
+    {
+        // Arrange
+        VehicleSpecification specification = CreateSpecification(vehicleType);
+        Engine original = Assert.Single(specification.Engines);
+
+        // Act
+        bool removed = specification.RemoveEngine(original);
+
+        // Assert
+        Assert.True(removed);
+        Assert.Empty(specification.Engines);
+        Assert.Null(specification.FindEngine(original.SerialNumber));
+        Assert.Equal(-1, specification.FindEngineIndex(original.SerialNumber));
+        Assert.False(specification.RemoveEngine(original));
+    }
+
+    [Theory]
+    [MemberData(nameof(VehicleTypes))]
+    public void Engines_ReturnedListCleared_DoesNotChangeStoredEngines(string vehicleType)
+    {
+        // Arrange
+        VehicleSpecification specification = CreateSpecification(vehicleType);
+        Engine original = Assert.Single(specification.Engines);
+        var returned = specification.Engines;
+
+        // Act
+        returned.Clear();
+
+        // Assert
+        Assert.Same(original, Assert.Single(specification.Engines));
+    }
+
+    [Theory]
+    [MemberData(nameof(VehicleTypes))]
+    public void AddEngine_DetailedEngineProvided_PreservesItsIdentityAndSpecification(string vehicleType)
+    {
+        // Arrange
+        VehicleSpecification specification = CreateSpecification(vehicleType);
+        Engine added = EngineFixtures.CreateEngine(
+            serialNumber: "DETAIL123",
+            model: "Test engine",
+            fuelType: FuelType.Gasoline,
+            horsePower: 240,
+            displacementCc: 2000,
+            cylinderCount: 4);
+
+        // Act
+        specification.AddEngine(added);
+        Engine? stored = specification.FindEngine("DETAIL123");
+
+        // Assert
+        Assert.NotNull(stored);
+        Assert.Same(added, stored);
+        Assert.Equal("DETAIL123", stored.SerialNumber);
+        Assert.Equal("Test engine", stored.Model);
+        Assert.Equal(FuelType.Gasoline, stored.FuelType);
+
+        var details = Assert.IsAssignableFrom<PistonEngineSpecification>(stored.SpecificationDetails);
+        Assert.Equal(240, details.HorsePower);
+        Assert.Equal(2000, details.DisplacementCc);
+        Assert.Equal(4, details.CylinderCount);
+        Assert.Equal(500d, stored.CylinderVolumeCc);
+    }
+
+    private static VehicleSpecification CreateSpecification(string vehicleType)
+    {
+        Vehicle vehicle = vehicleType switch
         {
-            Console.SetOut(output);
-            VehicleDisplay.PrintVehicle(3, vehicle);
-            return output.ToString();
-        }
-        finally
-        {
-            Console.SetOut(previous);
-        }
+            "Car" => VehicleFixtures.CreateCar(FixtureKind.Full),
+            "Motorcycle" => VehicleFixtures.CreateMotorcycle(FixtureKind.Full),
+            "Bus" => VehicleFixtures.CreateBus(FixtureKind.Full),
+            "Airplane" => VehicleFixtures.CreateAirplane(FixtureKind.Full),
+            "Boat" => VehicleFixtures.CreateBoat(FixtureKind.Full),
+            "Truck" => VehicleFixtures.CreateTruck(FixtureKind.Full),
+            _ => throw new ArgumentException("Unsupported test vehicle type.", nameof(vehicleType))
+        };
+
+        return Assert.IsAssignableFrom<VehicleSpecification>(vehicle.SpecificationDetails);
     }
 }

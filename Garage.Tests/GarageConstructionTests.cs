@@ -1,6 +1,9 @@
+using Garage.Factories;
 using Garage.Tests.Fixtures;
 using Garage.Vehicles;
-using VehicleGarage = Garage.Models.Garage;
+using Garage_V3;
+using Vehicles.Interfaces;
+using Garage_V3.results;
 
 namespace Garage.Tests;
 
@@ -9,7 +12,7 @@ public class GarageConstructionTests
     [Fact]
     public void Constructor_SetsCapacity()
     {
-        VehicleGarage garage = new("Test garage", 5);
+        Garage<IVehicle> garage = new("Test garage", 5);
 
         Assert.Equal(5, garage.Capacity);
         Assert.Equal(5, garage.AvailableSpaces);
@@ -19,44 +22,36 @@ public class GarageConstructionTests
     [Fact]
     public void Constructor_ParksInitialVehicles()
     {
-        Vehicle car = VehicleFixtures.CreateCar();
-        Vehicle motorcycle = VehicleFixtures.CreateMotorcycle();
+        IVehicle car = VehicleFixtures.CreateCar();
+        IVehicle motorcycle = VehicleFixtures.CreateMotorcycle();
 
-        VehicleGarage garage = new(
-            "Test garage",
-            capacity: 5,
-            initialVehicles: [car, motorcycle]);
+        Garage<IVehicle> garage = new Garage<IVehicle>("Test garage", 5);
+
+        garage.InitializeVehicles([car, motorcycle]);
 
         Assert.Equal(2, garage.OccupiedSpaces);
-        Assert.Contains(car, garage.Vehicles);
-        Assert.Contains(motorcycle, garage.Vehicles);
+
+        // Verify that the vehicles are parked in the order they were added
+        //Observe that the garage.Vehicles is a list of tuples (spaceNumber, vehicle)
+        Assert.Contains((1, car), garage.Vehicles);
+        Assert.Contains((2, motorcycle), garage.Vehicles);
+        Assert.Equal(car, garage.Vehicles[0].Vehicle);
+        Assert.Equal(motorcycle, garage.Vehicles[1].Vehicle);
+        Assert.Equal(2, garage.OccupiedSpaces);
     }
 
     [Fact]
     public void Constructor_RejectsDuplicateRegistrationsIgnoringCase()
     {
-        Vehicle first = VehicleFixtures.CreateCar("ABC123");
-        Vehicle second = VehicleFixtures.CreateCar("abc123");
+        IVehicle first = CarFactory.CreateCar("ABC123", CountryCode.SWE);
+        IVehicle second = CarFactory.CreateCar("abc123", CountryCode.SWE);
 
-        Assert.Throws(typeof(ArgumentException), () =>
-            new VehicleGarage(
-                "Test garage",
-                capacity: 5,
-                initialVehicles: [first, second]));
-    }
+        Garage<IVehicle> garage = new("Test garage", 5);
+        ParkingResult firstResult = garage.ParkVehicle(first);
+        ParkingResult secondResult = garage.ParkVehicle(second);
 
-    [Fact]
-    public void Constructor_RejectsNullVehicleInInitialArray()
-    {
-        List<Vehicle> initialVehicles = [null!];
+        Assert.False(secondResult.Success);
+        Assert.Equal(OperationError.DuplicateRegistration, secondResult.Error);
 
-        Exception exception = Assert.Throws(
-            typeof(ArgumentException),
-            () => new VehicleGarage(
-                "Test garage",
-                capacity: 5,
-                initialVehicles: initialVehicles));
-
-        Assert.Contains("Initial vehicles must not contain null vehicles", exception.Message);
     }
 }

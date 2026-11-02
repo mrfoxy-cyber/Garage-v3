@@ -1,0 +1,17 @@
+{
+  "Version": 1,
+  "Name": "Duplicate registrations garage",
+  "Capacity": 2,
+  "Vehicles": [
+    {
+      "VehicleType": "Car",
+      "RegistrationNumber": "ABC123",
+      "CountryCode": "SWE"
+    },
+    {
+      "VehicleType": "Motorcycle",
+      "RegistrationNumber": "abc123",
+      "CountryCode": "SWE"
+    }
+  ]
+}

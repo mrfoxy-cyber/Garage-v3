@@ -4,7 +4,6 @@ using System.Text;
 using Garage.Vehicles.Types;
 using Vehicles.Interfaces;
 using Garage.Vehicles.Specifications;
-using Vehicles.Interfaces;
 
 namespace Garage.Vehicles
 {

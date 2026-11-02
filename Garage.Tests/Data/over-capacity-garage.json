@@ -1,0 +1,17 @@
+{
+  "Version": 1,
+  "Name": "Over capacity garage",
+  "Capacity": 1,
+  "Vehicles": [
+    {
+      "VehicleType": "Car",
+      "RegistrationNumber": "ABC123",
+      "CountryCode": "SWE"
+    },
+    {
+      "VehicleType": "Motorcycle",
+      "RegistrationNumber": "DEF456",
+      "CountryCode": "SWE"
+    }
+  ]
+}
