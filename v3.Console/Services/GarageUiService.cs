@@ -1,6 +1,8 @@
+using Garage.Terminal.Components;
 using Garage.Terminal.Contracts;
 using Garage.Terminal.Views;
 using Garage_V3.Interfaces;
+using Garage_V3.queries;
 
 namespace Garage.Terminal.Services;
 
@@ -12,12 +14,15 @@ public sealed class GarageUiService
     private readonly ParkService parkService;
     private readonly RemoveService removeService;
 
+    private readonly SearchService searchService;
+
     public GarageUiService(IHandler handler, MainWindow window)
     {
         this.handler = handler;
         this.window = window;
         this.parkService = new ParkService(handler);
         this.removeService = new RemoveService(handler);
+        this.searchService = new SearchService(handler);
 
 
         window.Home.CreateInput.CreateRequested += CreateGarage;
@@ -86,6 +91,9 @@ public sealed class GarageUiService
                 ShowRemoveVehicle(garage, () => window.ShowPage(homeView), () => RefreshGarage(garageView, homeView));
         }
 
+        // Handle menu actions from the main window and delegate them to the appropriate methods.
+        window.MenuRequested += action =>
+        HandleMenuRequest(action, garage, garageView, homeView);
 
         // Show the garage view after creating the garage.
 
@@ -242,5 +250,80 @@ public sealed class GarageUiService
             garageView.TypeCounts.ShowCounts(counts);
         else
             garageView.Feedback.ShowResult(countsResult);
+    }
+
+    private void HandleMenuRequest(GarageMenuAction action, GarageChoice garage, GarageView garageView, HomeView homeView)
+    {
+        switch (action)
+        {
+            case GarageMenuAction.ParkVehicle:
+                ShowParking(garage, () => window.ShowPage(garageView), () => RefreshGarage(garageView, homeView));
+                break;
+
+            case GarageMenuAction.RemoveVehicle:
+                ShowRemoveVehicle(garage, () => window.ShowPage(garageView), () => RefreshGarage(garageView, homeView));
+                break;
+
+            case GarageMenuAction.SearchVehicles:
+                ShowSearch(garage, () => window.ShowPage(garageView));
+                break;
+
+            case GarageMenuAction.Refresh:
+                RefreshGarage(garageView, homeView);
+                break;
+
+            case GarageMenuAction.SelectGarage:
+            case GarageMenuAction.CreateGarage:
+                window.ShowPage(homeView);
+                break;
+
+            case GarageMenuAction.ShowTypeCounts:
+                RefreshGarage(garageView, homeView);
+                window.ShowPage(garageView);
+                break;
+        }
+    }
+
+    private void ShowSearch(GarageChoice garage, Action returnToPreviousPage)
+    {
+        SearchVehiclesView page = new(window.Theme, garage);
+
+        page.BackRequested += returnToPreviousPage;
+
+        page.Input.SearchRequested += criteria =>
+            SearchVehicles(page, garage, criteria);
+
+        page.Input.ClearRequested += () =>
+            SearchVehicles(page, garage, new VehicleSearchCriteria());
+
+        window.ShowPage(page);
+
+        SearchVehicles(page, garage, new VehicleSearchCriteria());
+    }
+
+    private void SearchVehicles(SearchVehiclesView page, GarageChoice garage, VehicleSearchCriteria criteria)
+    {
+        page.Input.ShowError(null);
+
+        var (vehicles, result) = searchService.SearchVehicles(criteria);
+
+        page.Feedback.ShowResult(result);
+
+        if (!result.Success)
+        {
+            page.Input.ShowError(result.Message);
+            page.Results.ShowVehicles([]);
+            return;
+        }
+
+        var results = vehicles
+            .Select(entry => new LocatedVehicleInfo(
+                GarageId: garage.Id,
+                GarageName: garage.Name,
+                SpotNumber: entry.SpotNumber,
+                Vehicle: entry.Vehicle))
+            .ToList();
+
+        page.Results.ShowVehicles(results);
     }
 }

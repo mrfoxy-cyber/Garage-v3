@@ -3,4 +3,13 @@ using Garage.Vehicles.Types;
 
 namespace Garage.Terminal.Contracts;
 
-public sealed record ParkVehicleRequest(string VehicleType, string RegistrationNumber, CountryCode CountryCode, VehicleColor? Color, int? SpotNumber, int? NumberOfWheels = null);
+public sealed record ParkVehicleRequest(
+    string VehicleType,
+    string RegistrationNumber,
+    CountryCode CountryCode,
+    VehicleColor? Color,
+    int? SpotNumber,
+    int? NumberOfWheels = null,
+    string? Manufacturer = null,
+    string? Model = null,
+    int? ManufacturingYear = null);

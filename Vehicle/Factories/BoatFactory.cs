@@ -8,28 +8,9 @@ namespace Garage.Factories;
 
 public static class BoatFactory
 {
-    public static Boat CreateBoat(
-        string registrationNumber,
-        CountryCode countryCode,
-        string manufacturer,
-        string model,
-        int manufacturingYear,
-        VehicleColor color,
-        double weightKg,
-        double lengthMeters,
-        double widthMeters,
-        double heightMeters,
-        string hin,
-        double draftMeters,
-        BoatType boatType,
-        int passengerCapacity,
-        int driverSeats,
-        bool hasCabin,
-        int cabinPassengerSeatCount,
-        int cabinCrewSeatCount,
-        List<Engine> engines)
+    public static Boat CreateBoat(string registrationNumber, CountryCode countryCode, string? manufacturer = null, string? model = null, int? manufacturingYear = null, VehicleColor? color = null, double? weightKg = null, double? lengthMeters = null, double? widthMeters = null, double? heightMeters = null, string? hin = null, double? draftMeters = null, BoatType? boatType = null, int? passengerCapacity = null, int? driverSeats = null, bool? hasCabin = null, int? cabinPassengerSeatCount = null, int? cabinCrewSeatCount = null, List<Engine>? engines = null)
     {
-        Cabin? cabin = hasCabin
+        Cabin? cabin = hasCabin == true
             ? new Cabin
             {
                 PassengerSeatCount = cabinPassengerSeatCount,
@@ -54,22 +35,14 @@ public static class BoatFactory
                 boatType: boatType)
             {
                 WeightKg = weightKg,
-                Dimensions = new Dimensions(lengthMeters, widthMeters, heightMeters),
+                Dimensions = (lengthMeters, widthMeters, heightMeters) switch
+                {
+                    (null, null, null) => null,
+                    (double length, double width, double height) => new Dimensions(length, width, height),
+                    _ => throw new ArgumentException("Supply all three dimensions, or leave all three blank.")
+                },
                 Engines = engines ?? []
             }
-        };
-    }
-
-    public static Boat CreateBoat(
-    string registrationNumber,
-    CountryCode countryCode,
-    BoatSpecification? specification = null)
-    {
-        return new Boat
-        {
-            RegistrationNumber = registrationNumber,
-            CountryCode = countryCode,
-            Specification = specification
         };
     }
 }

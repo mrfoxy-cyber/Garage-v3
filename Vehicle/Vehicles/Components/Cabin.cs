@@ -6,7 +6,7 @@ namespace Garage.Vehicles.Components
 {
     public class Cabin
     {
-        public required int PassengerSeatCount { get; init; }
-        public required int CrewSeatCount { get; init; }
+        public int? PassengerSeatCount { get; init; }
+        public int? CrewSeatCount { get; init; }
     }
 }

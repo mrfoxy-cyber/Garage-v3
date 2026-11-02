@@ -11,19 +11,21 @@ public static class CarFactory
     public static Car CreateCar(
         string registrationNumber,
         CountryCode countryCode,
-        string manufacturer,
-        string model,
-        int manufacturingYear,
-        VehicleColor color,
-        double weightKg,
-        double length,
-        double width,
-        double height,
-        string vin,
-        BodyType bodyType,
-        int numberOfDoors,
-        int numberOfSeats,
-        List<Engine> engines)
+        string? manufacturer=null,
+        string? model=null,
+        int? manufacturingYear=null,
+        int? numberOfWheels=null,
+        VehicleColor? color= null,
+        double? weightKg=null,
+        double? length=null,
+        double? width=null,
+        double? height=null,
+        string? vin=null,
+        BodyType bodyType = BodyType.Unknown,
+        int? numberOfDoors = null,
+        int? numberOfSeats=null,
+        int? crewSeats=null,
+        List<Engine>? engines = null)
     {
         return new Car
         {
@@ -37,30 +39,22 @@ public static class CarFactory
             Specification = new CarSpecification(
                                     bodyType: bodyType,
                                     numberOfDoors: numberOfDoors,
-                                    numberOfWheels: 4,
+                                    numberOfWheels: numberOfWheels,
                                     cabin: new Cabin
             {
-                PassengerSeatCount = numberOfSeats - 1,
-                CrewSeatCount = 1
-            })
+                PassengerSeatCount = numberOfSeats,
+                CrewSeatCount = crewSeats
+                                    })
                     {
                         WeightKg = weightKg,
-                        Dimensions = new Dimensions(length, width, height),
+                        Dimensions = (length, width, height) switch
+                        {
+                            (null, null, null) => null,
+                            (double l, double w, double h) => new Dimensions(l, w, h),
+                            _ => throw new ArgumentException("Supply all three dimensions, or leave all three blank.")
+                        },
                         Engines = engines ?? []
             }
-        };
-    }
-
-    public static Car CreateCar(
-    string registrationNumber,
-    CountryCode countryCode,
-    CarSpecification? specification = null)
-    {
-        return new Car
-        {
-            RegistrationNumber = registrationNumber,
-            CountryCode = countryCode,
-            Specification = specification
         };
     }
 }

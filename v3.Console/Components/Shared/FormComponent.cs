@@ -114,5 +114,15 @@ public abstract class FormComponent : AdaptiveComponent
         }
     }
 
+    protected CollapsiblePanel<T> AddSection<T>(string title, T content, GarageTheme theme, bool expanded = true) where T : View, IAdaptiveComponent
+    {
+        CollapsiblePanel<T> panel = new(title, content, theme, expanded);
+
+        panel.SizeHintsChanged += RequestReflow;
+        AddItem(panel, 1, true);
+
+        return panel;
+    }
+
     private static int MinimumFor(View control) => control is IAdaptiveComponent adaptive ? adaptive.MinimumWidth : control is TextField ? 12 : ComponentMetrics.NaturalWidth(control);
 }

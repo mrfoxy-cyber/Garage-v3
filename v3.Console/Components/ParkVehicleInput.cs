@@ -3,111 +3,125 @@ using Garage.Terminal.Contracts;
 using Garage.Terminal.Theming;
 using Garage.Vehicles;
 using Garage.Vehicles.Types;
-using Terminal.Gui.Views;
 
 namespace Garage.Terminal.Components;
 
 public sealed class ParkVehicleInput : FormComponent
 {
+    private readonly ParkingOptionsInput parkingOptions;
+    private readonly VehicleDetailsInput vehicleDetails;
+    private readonly VehicleIdentityInput identityInput;
 
-    private readonly Label registrationHint;
-    public ChoiceInput VehicleType { get; }
-    public ChoiceInput Country { get; }
-    public ChoiceInput Color { get; }
-    public TextField Registration { get; }
-    public TextField Spot { get; }
-    public TextField Wheels { get; }
+    private readonly CollapsiblePanel<VehicleIdentityInput> identityPanel;
+    private readonly CollapsiblePanel<VehicleDetailsInput> detailsPanel;
+    private readonly CollapsiblePanel<ParkingOptionsInput> parkingPanel;
 
     public event Action<ParkVehicleRequest>? ParkRequested;
 
     public ParkVehicleInput(GarageTheme theme) : base(theme)
     {
-        VehicleType = AddChoiceInput("Vehicle type", VehicleOptions.Types);
-        Registration = AddTextInput("Registration number");
-        registrationHint = AddTextBlock(string.Empty);
-        Country = AddChoiceInput("Country", VehicleOptions.Countries, "SWE");
-        Color = AddChoiceInput("Colour", ["Unknown", .. VehicleOptions.Colors], "Unknown");
-        Wheels = AddTextInput("Wheel count (blank = unknown)");
-        Spot = AddTextInput("Spot (blank = automatic)");
+        identityInput = new(theme);
+        vehicleDetails = new(theme);
+        parkingOptions = new(theme);
+
+        identityPanel = AddSection("Required information", identityInput, theme);
+        detailsPanel = AddSection("Optional vehicle details", vehicleDetails, theme, expanded: false);
+        parkingPanel = AddSection("Parking options", parkingOptions, theme, expanded: false);
 
         AddAction("_Park vehicle", Submit);
     }
 
-    public void SetAllowedTypes(IEnumerable<string> types) => VehicleType.SetOptions(types);
+    public void SetAllowedTypes(IEnumerable<string> types) => identityInput.SetAllowedTypes(types);
 
     public void Submit()
     {
         ShowError(null);
-        string registration = Registration.Text.Trim();
+        identityInput.ShowError(null);
+        vehicleDetails.ShowError(null);
+        parkingOptions.ShowError(null);
+
+        string registration = identityInput.Registration.Text.Trim();
+
         if (registration.Length == 0)
         {
-            ShowError("Enter a registration number.");
-            return;
-        }
-        if (VehicleType.Value.Length == 0)
-        {
-            ShowError("There are no vehicle types available for parking.");
+            ShowSectionError(identityPanel, "Enter a registration number.");
             return;
         }
 
-        int? spot = null;
-        int? wheels = null;
-        if (!string.IsNullOrWhiteSpace(Wheels.Text))
+        if (identityInput.VehicleType.Value.Length == 0)
         {
-            if (!int.TryParse(Wheels.Text, out int count) || count < 0)
-            {
-                ShowError("Wheel count must be a non-negative whole number, or blank.");
-                return;
-            }
-            wheels = count;
-        }
-        if (!string.IsNullOrWhiteSpace(Spot.Text))
-        {
-            if (!int.TryParse(Spot.Text, out int number) || number < 1)
-            {
-                ShowError("Enter a positive whole-number spot, or leave it blank.");
-                return;
-            }
-            spot = number;
+            ShowSectionError(identityPanel, "Choose a vehicle type.");
+            return;
         }
 
-        VehicleColor? color = Color.Value == "Unknown" ? null : Enum.Parse<VehicleColor>(Color.Value);
-        ParkRequested?.Invoke(new(VehicleType.Value, registration, Enum.Parse<CountryCode>(Country.Value), color, spot, wheels));
-
-        VehicleType.ValueChanged += _ => UpdateRegistrationHint();
-        Country.ValueChanged += _ => UpdateRegistrationHint();
-
-        UpdateRegistrationHint();
-
-
-    }
-
-    private void UpdateRegistrationHint()
-    {
-        registrationHint.Text = (VehicleType.Value, Country.Value) switch
+        if (!Enum.TryParse(identityInput.Country.Value, out CountryCode country) ||
+            country == CountryCode.Unspecified || !Enum.IsDefined(country))
         {
-            ("Boat", "SWE") =>
-                "Examples: SABC, SAM-2000 or 7SA-2000.",
+            ShowSectionError(identityPanel, "Choose a supported country.");
+            return;
+        }
 
-            ("Airplane", "SWE") =>
-                "Example: SE-ABC. Include the hyphen.",
+        if (!TryOptionalInteger(vehicleDetails.Wheels.Text, out int? wheels) || wheels < 0)
+        {
+            ShowSectionError(detailsPanel, "Wheel count must be a non-negative whole number, or blank.");
+            return;
+        }
 
-            ("Car" or "Motorcycle" or "Bus", "SWE") =>
-                "Examples: ABC123 or ABC12A.",
+        if (!TryOptionalInteger(vehicleDetails.ManufacturingYear.Text, out int? year) || year <= 0)
+        {
+            ShowSectionError(detailsPanel, "Manufacturing year must be a positive whole number, or blank.");
+            return;
+        }
 
-            _ =>
-                "No format example available for this selection."
-        };
+        if (!TryOptionalInteger(parkingOptions.Spot.Text, out int? spot) || spot < 1)
+        {
+            ShowSectionError(parkingPanel, "Spot must be a positive whole number, or blank.");
+            return;
+        }
 
-        RequestReflow();
+        VehicleColor? color = vehicleDetails.Color.Value == "Unknown"
+            ? null
+            : Enum.Parse<VehicleColor>(vehicleDetails.Color.Value);
+
+        ParkRequested?.Invoke(new ParkVehicleRequest(
+            VehicleType: identityInput.VehicleType.Value,
+            RegistrationNumber: registration,
+            CountryCode: country,
+            Color: color,
+            SpotNumber: spot,
+            NumberOfWheels: wheels,
+            Manufacturer: Optional(vehicleDetails.Manufacturer.Text),
+            Model: Optional(vehicleDetails.Model.Text),
+            ManufacturingYear: year));
     }
 
     public void Reset()
     {
-        Registration.Text = string.Empty;
-        Spot.Text = string.Empty;
-        Wheels.Text = string.Empty;
-        Color.SetValue("Unknown");
+        identityInput.Reset();
+        vehicleDetails.Reset();
+        parkingOptions.Reset();
         ShowError(null);
+    }
+
+    private static void ShowSectionError<T>(CollapsiblePanel<T> panel, string message) where T : FormComponent
+    {
+        panel.Content.ShowError(message);
+        panel.SetExpanded(true);
+    }
+
+    private static string? Optional(string text) => string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+
+    private static bool TryOptionalInteger(string text, out int? value)
+    {
+        value = null;
+
+        if (string.IsNullOrWhiteSpace(text))
+            return true;
+
+        if (!int.TryParse(text, out int number))
+            return false;
+
+        value = number;
+        return true;
     }
 }

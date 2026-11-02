@@ -251,10 +251,15 @@ namespace Garage_V3.Services
 
         private static bool MatchesCriteria(IVehicle vehicle, VehicleSearchCriteria criteria)
         {
+            Vehicle? details = vehicle as Vehicle;
+
             return MatchesText(vehicle.RegistrationNumber, criteria.RegistrationNumber)
                 && MatchesText(vehicle.GetType().Name, criteria.VehicleType)
+                && MatchesText(details?.Manufacturer, criteria.Manufacturer)
+                && MatchesText(details?.Model, criteria.Model)
                 && (criteria.CountryCode is null || vehicle.CountryCode == criteria.CountryCode)
-                && (criteria.Color is null || (vehicle is Vehicle details && details.Color == criteria.Color))
+                && (criteria.ManufacturingYear is null || details?.ManufacturingYear == criteria.ManufacturingYear)
+                && (criteria.Color is null || details?.Color == criteria.Color)
                 && (criteria.NumberOfWheels is null || (vehicle is IHasWheels wheels && wheels.NumberOfWheels == criteria.NumberOfWheels));
         }
 

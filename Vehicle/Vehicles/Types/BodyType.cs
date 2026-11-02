@@ -8,5 +8,11 @@ public enum BodyType
     Coupe,
     Convertible,
     Van,
-    Pickup
+    Pickup,
+
+    Wagon,
+
+    Minivan,
+
+    Unknown
 }

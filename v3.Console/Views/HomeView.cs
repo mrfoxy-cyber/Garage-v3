@@ -9,10 +9,15 @@ public sealed class HomeView : PageView
     public CreateGarageInput CreateInput { get; }
     public IReadOnlyList<GarageCard> GarageCards { get; }
 
+    public LoadGarageInput LoadInput { get; }
+
     public HomeView(GarageTheme theme, IReadOnlyList<GarageChoice> garages) : base("Home", theme, showBack: false)
     {
         CreateInput = new(theme);
         AddPanel("Create a garage", CreateInput);
+
+        LoadInput = new(theme);
+        AddPanel("Load a garage", LoadInput);
 
         List<GarageCard> cards = [];
 

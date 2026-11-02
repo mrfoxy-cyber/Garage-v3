@@ -4,6 +4,7 @@ using Garage.Vehicles;
 using Garage.Vehicles.Specifications;
 using Garage_V3.Interfaces;
 using Garage_V3.results;
+using Vehicles.Interfaces;
 
 namespace Garage.Terminal.Services;
 
@@ -47,37 +48,53 @@ public sealed class ParkService
         if (request.VehicleType == "Boat" && wheels is not null)
             throw new ArgumentException("Leave wheel count blank for boats.");
 
-        Vehicle vehicle = request.VehicleType switch
+        return request.VehicleType switch
         {
             "Car" => CarFactory.CreateCar(
-                request.RegistrationNumber,
-                request.CountryCode,
-                wheels is null ? null : new CarSpecification(numberOfWheels: wheels)),
+                registrationNumber: request.RegistrationNumber,
+                countryCode: request.CountryCode,
+                manufacturer: request.Manufacturer,
+                model: request.Model,
+                manufacturingYear: request.ManufacturingYear,
+                color: request.Color,
+                numberOfWheels: request.NumberOfWheels),
 
             "Motorcycle" => MotorcycleFactory.CreateMotorcycle(
-                request.RegistrationNumber,
-                request.CountryCode,
-                wheels is null ? null : new MotorcycleSpecification(numberOfWheels: wheels)),
+                registrationNumber: request.RegistrationNumber,
+                countryCode: request.CountryCode,
+                manufacturer: request.Manufacturer,
+                model: request.Model,
+                manufacturingYear: request.ManufacturingYear,
+                color: request.Color,
+                numberOfWheels: request.NumberOfWheels),
 
             "Bus" => BusFactory.CreateBus(
-                request.RegistrationNumber,
-                request.CountryCode,
-                wheels is null ? null : new BusSpecification(numberOfWheels: wheels)),
+                registrationNumber: request.RegistrationNumber,
+                countryCode: request.CountryCode,
+                manufacturer: request.Manufacturer,
+                model: request.Model,
+                manufacturingYear: request.ManufacturingYear,
+                color: request.Color,
+                numberOfWheels: request.NumberOfWheels),
 
             "Airplane" => AirplaneFactory.CreateAirplane(
-                request.RegistrationNumber,
-                request.CountryCode,
-                wheels is null ? null : new AirplaneSpecification(numberOfWheels: wheels)),
+                registrationNumber: request.RegistrationNumber,
+                countryCode: request.CountryCode,
+                manufacturer: request.Manufacturer,
+                model: request.Model,
+                manufacturingYear: request.ManufacturingYear,
+                color: request.Color,
+                numberOfWheels: request.NumberOfWheels),
 
             "Boat" => BoatFactory.CreateBoat(
-                request.RegistrationNumber,
-                request.CountryCode),
+                registrationNumber: request.RegistrationNumber,
+                countryCode: request.CountryCode,
+                manufacturer: request.Manufacturer,
+                model: request.Model,
+                manufacturingYear: request.ManufacturingYear,
+                color: request.Color),
 
             _ => throw new ArgumentException("Choose a supported vehicle type.")
         };
-
-        vehicle.Color = request.Color;
-
-        return vehicle;
     }
 }
