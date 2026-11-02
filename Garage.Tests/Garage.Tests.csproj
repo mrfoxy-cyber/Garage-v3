@@ -20,9 +20,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Garage.Console\Garage.Console.csproj" />
-    <ProjectReference Include="..\Garage.Terminal\Garage.Terminal.csproj" />
-    <ProjectReference Include="..\Garage\Garage.csproj" />
     <ProjectReference Include="..\Vehicle\Vehicle.csproj" />
   </ItemGroup>
 
