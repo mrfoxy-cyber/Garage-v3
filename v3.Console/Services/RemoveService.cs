@@ -1,18 +1,21 @@
+using Garage.Manager;
 using Garage_V3.Interfaces;
 using Garage_V3.results;
+using Garage.Manager.Interfaces;
 
 namespace Garage.Terminal.Services;
 
 public sealed class RemoveService
 {
-    private readonly IHandler handler;
+    //private readonly IHandler handler;
+    private readonly IGarageManager manager;
 
-    public RemoveService(IHandler handler)
+    public RemoveService(IGarageManager manager)
     {
-        this.handler = handler;
+        this.manager = manager;
     }
 
-    public OperationResult RemoveVehicle(string registrationNumber)
+    public OperationResult RemoveVehicle(string garageId, string registrationNumber)
     {
         if (string.IsNullOrWhiteSpace(registrationNumber))
         {
@@ -21,6 +24,6 @@ public sealed class RemoveService
                 OperationError.ValidationFailed);
         }
 
-        return handler.RemoveVehicle(registrationNumber.Trim());
+        return manager.RemoveVehicle(garageId, registrationNumber.Trim());
     }
 }

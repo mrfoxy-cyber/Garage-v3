@@ -16,6 +16,8 @@ public sealed class GarageCard : FormComponent
     public event Action<string>? ParkRequested;
     public event Action<string>? RemoveRequested;
 
+    public event Action<string>? SearchRequested;
+
     public GarageCard(GarageChoice garage, GarageTheme theme) : base(theme)
     {
         Garage = garage;
@@ -23,6 +25,7 @@ public sealed class GarageCard : FormComponent
         AddAction("_Open garage", () => OpenRequested?.Invoke(Garage.Id));
         park = AddAction("_Park vehicle", () => ParkRequested?.Invoke(Garage.Id));
         remove = AddAction("_Remove vehicle", () => RemoveRequested?.Invoke(Garage.Id));
+        AddAction("_Search vehicles", () => SearchRequested?.Invoke(Garage.Id));
         Update(garage);
     }
 

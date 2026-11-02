@@ -4,10 +4,11 @@ using Garage_V3.queries;
 using Garage_V3.results;
 using Garage_V3.Services;
 using Vehicles.Interfaces;
+using Garage.Manager.Interfaces;
 
 namespace Garage.Manager;
 
-public sealed class GarageManager
+public sealed class GarageManager: IGarageManager
 {
     private sealed record Entry(string Name, IHandler Handler);
 
@@ -126,10 +127,12 @@ public sealed class GarageManager
 
         string registration = vehicle.RegistrationNumber.Trim();
 
-        if (vehicleLocations.ContainsKey(registration))
+        if (vehicleLocations.TryGetValue(registration, out string? existingGarageId))
         {
+            string garageName = garages[existingGarageId].Name;
+
             return ParkingResult.Failed(
-                $"Vehicle '{registration}' is already parked in a garage.",
+                $"Vehicle '{registration}' is already parked in garage '{garageName}'.",
                 OperationError.DuplicateRegistration);
         }
 
@@ -206,5 +209,103 @@ public sealed class GarageManager
     private static OperationResult MissingGarage()
     {
         return OperationResult.Failed("Choose an existing garage.", OperationError.NoGarage);
+    }
+
+    public (VehicleLocation? Location, OperationResult Result) FindVehicle(string registrationNumber)
+    {
+        if (string.IsNullOrWhiteSpace(registrationNumber))
+        {
+            return (null, OperationResult.Failed(
+                "Enter a registration number.",
+                OperationError.ValidationFailed));
+        }
+
+        string registration = registrationNumber.Trim();
+
+        if (!vehicleLocations.TryGetValue(registration, out var garageId))
+        {
+            return (null, OperationResult.Failed(
+                $"No vehicle found with registration '{registration}'.",
+                OperationError.VehicleNotFound));
+        }
+
+        if (!garages.TryGetValue(garageId, out var garage))
+        {
+            return (null, OperationResult.Failed(
+                "The vehicle's garage could not be found.",
+                OperationError.UnexpectedError));
+        }
+
+        var (vehicles, result) = garage.Handler.GetVehicles();
+
+        if (!result.Success)
+            return (null, result);
+
+        var matches = vehicles
+            .Where(entry => string.Equals(
+                entry.Vehicle.RegistrationNumber,
+                registration,
+                StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (matches.Count == 0)
+        {
+            return (null, OperationResult.Failed(
+                "The vehicle location is inconsistent with the garage contents.",
+                OperationError.UnexpectedError));
+        }
+
+        if (matches.Count > 1)
+        {
+            return (null, OperationResult.Failed(
+                $"Multiple vehicles have registration '{registration}'.",
+                OperationError.MultipleVehiclesFound));
+        }
+
+        var parked = matches[0];
+
+        VehicleLocation location = new(
+            GarageId: garageId,
+            GarageName: garage.Name,
+            SpotNumber: parked.SpotNumber,
+            Vehicle: parked.Vehicle);
+
+        return (location, OperationResult.Completed("Vehicle found."));
+    }
+
+    public (IReadOnlyList<VehicleLocation> Vehicles, OperationResult Result) SearchAllVehicles(VehicleSearchCriteria criteria)
+    {
+        if (criteria is null)
+        {
+            return (Array.Empty<VehicleLocation>(), OperationResult.Failed(
+                "Supply search criteria.",
+                OperationError.ValidationFailed));
+        }
+
+        List<VehicleLocation> matches = [];
+
+        foreach (var garage in garages)
+        {
+            var (vehicles, result) = garage.Value.Handler.SearchVehicles(criteria);
+
+            if (!result.Success)
+            {
+                return (Array.Empty<VehicleLocation>(), OperationResult.Failed(
+                    $"Could not search garage '{garage.Value.Name}': {result.Message}",
+                    result.Error ?? OperationError.UnexpectedError));
+            }
+
+            foreach (var entry in vehicles)
+            {
+                matches.Add(new VehicleLocation(
+                    GarageId: garage.Key,
+                    GarageName: garage.Value.Name,
+                    SpotNumber: entry.SpotNumber,
+                    Vehicle: entry.Vehicle));
+            }
+        }
+
+        return (matches.AsReadOnly(), OperationResult.Completed(
+            $"Found {matches.Count} matching vehicles across all garages."));
     }
 }

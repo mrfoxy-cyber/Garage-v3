@@ -47,7 +47,7 @@ namespace Garage_V3
 
         public IEnumerator<T> GetEnumerator() => Vehicles.Select(entry => entry.Vehicle).GetEnumerator();
 
-        System.Collections.IEnumerator  System.Collections.IEnumerable.GetEnumerator() =>
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() =>
                 GetEnumerator();
 
 
@@ -125,9 +125,9 @@ namespace Garage_V3
 
             return OperationResult.Completed("Vehicle removed.");
         }
-    }
 
-    public OperationResult InitializeVehicles(IEnumerable<T> initialVehicles)
+
+        public OperationResult InitializeVehicles(IEnumerable<T> initialVehicles)
         {
             if (initialVehicles is null)
             {
@@ -192,3 +192,5 @@ namespace Garage_V3
         }
 
     }
+
+}

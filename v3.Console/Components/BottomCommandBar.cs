@@ -28,14 +28,10 @@ public sealed class BottomCommandBar : View
         Y = Pos.AnchorEnd(1);
         SchemeName = theme.CommandBarScheme;
 
+        AddOption(GarageMenuAction.Home, "Home", Key.F1);
         AddOption(GarageMenuAction.ParkVehicle, "Park", Key.F2);
         AddOption(GarageMenuAction.RemoveVehicle, "Remove", Key.F3);
-        AddOption(GarageMenuAction.FindVehicle, "Find", Key.F4);
-        AddOption(GarageMenuAction.SearchVehicles, "Search", Key.F6);
-        AddOption(GarageMenuAction.Refresh, "Refresh", Key.F5);
-        AddOption(GarageMenuAction.SelectGarage, "Garages", Key.F7);
-        AddOption(GarageMenuAction.ShowTypeCounts, "Types", Key.F9);
-        AddOption(GarageMenuAction.CreateGarage, "New garage", Key.F1);
+        AddOption(GarageMenuAction.SearchVehicles, "Search", Key.F4);
         AddOption(GarageMenuAction.Quit, "Quit", Key.F10);
 
         more = new Shortcut(Key.F12, "More", ShowMore)

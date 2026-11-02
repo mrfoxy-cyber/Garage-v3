@@ -1,114 +1,194 @@
 using Garage.Terminal.Components;
 using Garage.Terminal.Contracts;
 using Garage.Terminal.Views;
-using Garage_V3.Interfaces;
 using Garage_V3.queries;
+using Garage_V3.results;
+using Garage.Manager.Interfaces;
 
 namespace Garage.Terminal.Services;
 
 public sealed class GarageUiService
 {
-    private readonly IHandler handler;
+    private readonly IGarageManager manager;
     private readonly MainWindow window;
-
     private readonly ParkService parkService;
     private readonly RemoveService removeService;
-
     private readonly SearchService searchService;
 
-    public GarageUiService(IHandler handler, MainWindow window)
+    private HomeView? homeView;
+    private string? selectedGarageId;
+    private Action? refreshCurrentPage;
+
+    public GarageUiService(IGarageManager manager, MainWindow window)
     {
-        this.handler = handler;
+        this.manager = manager;
         this.window = window;
-        this.parkService = new ParkService(handler);
-        this.removeService = new RemoveService(handler);
-        this.searchService = new SearchService(handler);
 
+        parkService = new(manager);
+        removeService = new(manager);
+        searchService = new(manager);
 
-        window.Home.CreateInput.CreateRequested += CreateGarage;
+        window.MenuRequested += HandleMenuRequest;
+
+        ShowHome();
     }
-    // This method is called when the user requests to create a new garage.
-    private void CreateGarage(string name, int capacity)
+
+    private void ShowHome()
     {
-        var result = handler.CreateGarage(name, capacity);
+        var (garages, result) = manager.GetGarages();
 
         if (!result.Success)
         {
             window.Home.CreateInput.ShowError(result.Message);
+            window.ShowPage(window.Home);
             return;
         }
 
-        // After creating the garage, we want to show the garage view with the current garage information.
-        var (info, infoResult) = handler.GetGarageInfo();
+        var choices = garages
+            .Select(entry => new GarageChoice(
+                Id: entry.Id,
+                Name: entry.Info.GarageName,
+                VehicleTypes: "Mixed",
+                Capacity: entry.Info.Capacity,
+                OccupiedSpaces: entry.Info.OccupiedSpaces))
+            .ToList();
 
-        if (!infoResult.Success || info is null)
+        homeView = new(window.Theme, choices);
+
+        homeView.CreateInput.CreateRequested += CreateGarage;
+
+        foreach (var card in homeView.GarageCards)
         {
-            window.Home.CreateInput.ShowError(infoResult.Message);
+            card.OpenRequested += id => ShowGarage(id);
+            card.ParkRequested += id => ShowParking(id, () => ShowHome());
+            card.RemoveRequested += id => ShowRemoveVehicle(id, () => ShowHome());
+            card.SearchRequested += id => ShowGlobalSearchVehicles();
+        }
+
+        selectedGarageId = null;
+        refreshCurrentPage = ShowHome;
+
+        window.ShowPage(homeView);
+    }
+
+    private void CreateGarage(string name, int capacity)
+    {
+        var (garageId, result) = manager.CreateGarage(name, capacity);
+
+        if (!result.Success || garageId is null)
+        {
+            homeView?.CreateInput.ShowError(result.Message);
             return;
         }
 
-        // Create a GarageChoice object to represent the current garage.
+        ShowGarage(garageId, result);
+    }
 
-        GarageChoice garage = new(
-            Id: "current",
+    private GarageChoice? GetGarageChoice(string garageId)
+    {
+        var (info, result) = manager.GetGarageInfo(garageId);
+
+        if (!result.Success || info is null)
+        {
+            ShowHome();
+            homeView?.CreateInput.ShowError(result.Message);
+            return null;
+        }
+
+        return new GarageChoice(
+            Id: garageId,
             Name: info.GarageName,
             VehicleTypes: "Mixed",
             Capacity: info.Capacity,
             OccupiedSpaces: info.OccupiedSpaces);
-
-        GarageView garageView = new(window.Theme, garage);
-        HomeView homeView = new(window.Theme, [garage]);
-
-        // The current handler owns one garage.
-        homeView.CreateInput.Enabled = false;
-
-        foreach (var card in homeView.GarageCards)
-        {
-            card.OpenRequested += _ => window.ShowPage(garageView);
-        }
-
-        // When the user requests to go back from the garage view, we show the home view again.
-        garageView.BackRequested += () => window.ShowPage(homeView);
-
-
-        // When the user requests to park a vehicle or remove a vehicle, we show the respective views.
-        garageView.Summary.ParkRequested += _ =>
-            ShowParking(garage, () => window.ShowPage(garageView), () => RefreshGarage(garageView, homeView));
-
-        // When the user requests to remove a vehicle, we show the remove vehicle view.
-        garageView.Summary.RemoveRequested += _ =>
-            ShowRemoveVehicle(garage, () => window.ShowPage(garageView), () => RefreshGarage(garageView, homeView));
-
-        // When the user requests to go back from the garage view, we show the home view again.
-        foreach (var card in homeView.GarageCards)
-        {
-            card.OpenRequested += _ => window.ShowPage(garageView);
-
-            card.ParkRequested += _ =>
-                ShowParking(garage, () => window.ShowPage(homeView), () => RefreshGarage(garageView, homeView));
-
-            card.RemoveRequested += _ =>
-                ShowRemoveVehicle(garage, () => window.ShowPage(homeView), () => RefreshGarage(garageView, homeView));
-        }
-
-        // Handle menu actions from the main window and delegate them to the appropriate methods.
-        window.MenuRequested += action =>
-        HandleMenuRequest(action, garage, garageView, homeView);
-
-        // Show the garage view after creating the garage.
-
-        window.ShowPage(garageView);
     }
 
-    private void ShowParking(GarageChoice garage, Action returnToPreviousPage, Action refreshGarage)
+    private void ShowGarage(string garageId, OperationResult? feedback = null)
     {
+        GarageChoice? garage = GetGarageChoice(garageId);
+
+        if (garage is null)
+            return;
+
+        GarageView page = new(window.Theme, garage);
+
+        page.BackRequested += ShowHome;
+
+        page.Summary.OpenRequested += id => ShowGarage(id);
+        page.Summary.ParkRequested += id => ShowParking(id, () => ShowGarage(id));
+        page.Summary.RemoveRequested += id => ShowRemoveVehicle(id, () => ShowGarage(id));
+        page.Summary.SearchRequested += id => ShowGlobalSearchVehicles();
+
+        if (feedback is not null)
+            page.Feedback.ShowResult(feedback);
+
+        var (vehicles, vehiclesResult) = manager.GetVehicles(garageId);
+
+        if (vehiclesResult.Success)
+            page.Vehicles.ShowVehicles(vehicles);
+        else
+            page.Feedback.ShowResult(vehiclesResult);
+
+        var (counts, countsResult) = manager.GetVehicleTypeCounts(garageId);
+
+        if (countsResult.Success)
+            page.TypeCounts.ShowCounts(counts);
+        else
+            page.Feedback.ShowResult(countsResult);
+
+        selectedGarageId = garageId;
+        refreshCurrentPage = () => ShowGarage(garageId);
+
+        window.ShowPage(page);
+    }
+
+    private void ShowGarages()
+    {
+        var (garages, result) = manager.GetGarages();
+
+        if (!result.Success)
+        {
+            ShowHome();
+            homeView?.CreateInput.ShowError(result.Message);
+            return;
+        }
+
+        var choices = garages
+            .Select(entry => new GarageChoice(
+                Id: entry.Id,
+                Name: entry.Info.GarageName,
+                VehicleTypes: "Mixed",
+                Capacity: entry.Info.Capacity,
+                OccupiedSpaces: entry.Info.OccupiedSpaces))
+            .ToList();
+
+        GaragesView page = new(window.Theme);
+
+        page.Picker.ShowGarages(choices);
+        page.Picker.OpenRequested += id => ShowGarage(id);
+        page.Picker.CreateRequested += ShowHome;
+        page.BackRequested += ShowHome;
+
+        selectedGarageId = null;
+        refreshCurrentPage = ShowGarages;
+
+        window.ShowPage(page);
+    }
+
+    private void ShowParking(string garageId, Action returnToPreviousPage)
+    {
+        GarageChoice? garage = GetGarageChoice(garageId);
+
+        if (garage is null)
+            return;
+
         ParkVehicleView page = new(window.Theme, garage);
 
         page.BackRequested += returnToPreviousPage;
 
         page.Input.ParkRequested += request =>
         {
-            var result = parkService.ParkVehicle(request);
+            var result = parkService.ParkVehicle(garageId, request);
 
             page.Feedback.ShowResult(result);
 
@@ -119,173 +199,21 @@ public sealed class GarageUiService
             }
 
             page.Input.Reset();
-            refreshGarage();
         };
 
-        window.ShowPage(page);
-    }
-
-    private void ShowRemoveVehicle(GarageChoice garage, Action returnToPreviousPage, Action refreshGarage)
-    {
-        RemoveVehicleView page = new(window.Theme, garage);
-
-        page.BackRequested += returnToPreviousPage;
-
-        page.Input.LookupRequested += registration =>
-            ShowRemovalConfirmation(garage, page, registration, refreshGarage);
+        selectedGarageId = garageId;
+        refreshCurrentPage = null;
 
         window.ShowPage(page);
     }
 
-    private void ShowRemovalConfirmation(GarageChoice garage, RemoveVehicleView page, string registration, Action refreshGarage)
+    private void ShowSearch(string garageId, Action returnToPreviousPage)
     {
-        page.Input.ShowError(null);
+        GarageChoice? garage = GetGarageChoice(garageId);
 
-        var (vehicle, findResult) = handler.FindVehicle(registration);
-
-        if (!findResult.Success || vehicle is null)
-        {
-            page.Input.ShowError(findResult.Message);
-            page.Feedback.ShowResult(findResult);
+        if (garage is null)
             return;
-        }
 
-        var (vehicles, vehiclesResult) = handler.GetVehicles();
-
-        if (!vehiclesResult.Success)
-        {
-            page.Input.ShowError(vehiclesResult.Message);
-            page.Feedback.ShowResult(vehiclesResult);
-            return;
-        }
-        // Find the spot number of the vehicle in the garage.
-        int? spotNumber = vehicles
-            .Where(entry => string.Equals(
-                entry.Vehicle.RegistrationNumber,
-                vehicle.RegistrationNumber,
-                StringComparison.OrdinalIgnoreCase))
-            .Select(entry => (int?)entry.SpotNumber)
-            .FirstOrDefault();
-
-        if (spotNumber is null)
-        {
-            page.Input.ShowError("The vehicle is no longer parked. Search again.");
-            return;
-        }
-        // Create a LocatedVehicleInfo object to represent the vehicle and its location in the garage.
-        LocatedVehicleInfo match = new(
-            GarageId: garage.Id,
-            GarageName: garage.Name,
-            SpotNumber: spotNumber.Value,
-            Vehicle: vehicle);
-
-        // Show a confirmation view to the user before removing the vehicle.
-        ConfirmRemovalView confirmation = new(window.Theme, match);
-
-        confirmation.BackRequested += () => window.ShowPage(page);
-        confirmation.Confirmation.CancelRequested += () => window.ShowPage(page);
-
-        // When the user confirms the removal, we call the ConfirmRemoval method to handle the removal process.
-        confirmation.Confirmation.ConfirmRequested += selected =>
-            ConfirmRemoval(selected, confirmation, page, refreshGarage);
-
-        window.ShowPage(confirmation);
-    }
-
-    private void ConfirmRemoval(LocatedVehicleInfo match, ConfirmRemovalView confirmation, RemoveVehicleView page, Action refreshGarage)
-    {
-        // Call the RemoveService to remove the vehicle from the garage.!!!!!!!!
-        var result = removeService.RemoveVehicle(match.Vehicle.RegistrationNumber);
-
-        confirmation.Feedback.ShowResult(result);
-
-        if (!result.Success)
-        {
-            confirmation.Confirmation.ShowError(result.Message);
-            return;
-        }
-
-        confirmation.Confirmation.Clear();
-
-        page.Input.Registration.Text = string.Empty;
-        page.Input.ShowError(null);
-        page.Feedback.ShowResult(result);
-
-        refreshGarage();
-        window.ShowPage(page);
-    }
-
-    private void RefreshGarage(GarageView garageView, HomeView homeView)
-    {
-        var (info, infoResult) = handler.GetGarageInfo();
-
-        if (!infoResult.Success || info is null)
-        {
-            garageView.Feedback.ShowResult(infoResult);
-            return;
-        }
-
-        GarageChoice garage = new(
-            Id: "current",
-            Name: info.GarageName,
-            VehicleTypes: "Mixed",
-            Capacity: info.Capacity,
-            OccupiedSpaces: info.OccupiedSpaces);
-
-        garageView.Summary.Update(garage);
-
-        foreach (var card in homeView.GarageCards)
-            card.Update(garage);
-
-        var (vehicles, vehiclesResult) = handler.GetVehicles();
-
-        if (vehiclesResult.Success)
-            garageView.Vehicles.ShowVehicles(vehicles);
-        else
-            garageView.Feedback.ShowResult(vehiclesResult);
-
-        var (counts, countsResult) = handler.GetVehicleTypeCounts();
-
-        if (countsResult.Success)
-            garageView.TypeCounts.ShowCounts(counts);
-        else
-            garageView.Feedback.ShowResult(countsResult);
-    }
-
-    private void HandleMenuRequest(GarageMenuAction action, GarageChoice garage, GarageView garageView, HomeView homeView)
-    {
-        switch (action)
-        {
-            case GarageMenuAction.ParkVehicle:
-                ShowParking(garage, () => window.ShowPage(garageView), () => RefreshGarage(garageView, homeView));
-                break;
-
-            case GarageMenuAction.RemoveVehicle:
-                ShowRemoveVehicle(garage, () => window.ShowPage(garageView), () => RefreshGarage(garageView, homeView));
-                break;
-
-            case GarageMenuAction.SearchVehicles:
-                ShowSearch(garage, () => window.ShowPage(garageView));
-                break;
-
-            case GarageMenuAction.Refresh:
-                RefreshGarage(garageView, homeView);
-                break;
-
-            case GarageMenuAction.SelectGarage:
-            case GarageMenuAction.CreateGarage:
-                window.ShowPage(homeView);
-                break;
-
-            case GarageMenuAction.ShowTypeCounts:
-                RefreshGarage(garageView, homeView);
-                window.ShowPage(garageView);
-                break;
-        }
-    }
-
-    private void ShowSearch(GarageChoice garage, Action returnToPreviousPage)
-    {
         SearchVehiclesView page = new(window.Theme, garage);
 
         page.BackRequested += returnToPreviousPage;
@@ -296,6 +224,9 @@ public sealed class GarageUiService
         page.Input.ClearRequested += () =>
             SearchVehicles(page, garage, new VehicleSearchCriteria());
 
+        selectedGarageId = garageId;
+        refreshCurrentPage = page.Input.Submit;
+
         window.ShowPage(page);
 
         SearchVehicles(page, garage, new VehicleSearchCriteria());
@@ -305,7 +236,7 @@ public sealed class GarageUiService
     {
         page.Input.ShowError(null);
 
-        var (vehicles, result) = searchService.SearchVehicles(criteria);
+        var (vehicles, result) = searchService.SearchVehicles(garage.Id, criteria);
 
         page.Feedback.ShowResult(result);
 
@@ -316,7 +247,7 @@ public sealed class GarageUiService
             return;
         }
 
-        var results = vehicles
+        var matches = vehicles
             .Select(entry => new LocatedVehicleInfo(
                 GarageId: garage.Id,
                 GarageName: garage.Name,
@@ -324,6 +255,259 @@ public sealed class GarageUiService
                 Vehicle: entry.Vehicle))
             .ToList();
 
-        page.Results.ShowVehicles(results);
+        page.Results.ShowVehicles(matches);
+    }
+
+    private void ShowRemoveVehicle(string garageId, Action returnToPreviousPage)
+    {
+        GarageChoice? garage = GetGarageChoice(garageId);
+
+        if (garage is null)
+            return;
+
+        RemoveVehicleView page = new(window.Theme, garage);
+
+        page.BackRequested += returnToPreviousPage;
+
+        page.Input.LookupRequested += registration =>
+            ShowRemovalConfirmation(garage, page, registration);
+
+        selectedGarageId = garageId;
+        refreshCurrentPage = null;
+
+        window.ShowPage(page);
+    }
+
+    private void ShowRemovalConfirmation(GarageChoice garage, RemoveVehicleView page, string registration)
+    {
+        page.Input.ShowError(null);
+
+        VehicleSearchCriteria criteria = new()
+        {
+            RegistrationNumber = registration
+        };
+
+        var (vehicles, result) = searchService.SearchVehicles(garage.Id, criteria);
+
+        page.Feedback.ShowResult(result);
+
+        if (!result.Success)
+        {
+            page.Input.ShowError(result.Message);
+            return;
+        }
+
+        if (vehicles.Count == 0)
+        {
+            page.Input.ShowError($"No vehicle found with registration '{registration}'.");
+            return;
+        }
+
+        if (vehicles.Count > 1)
+        {
+            page.Input.ShowError($"Multiple vehicles have registration '{registration}'.");
+            return;
+        }
+
+        var entry = vehicles[0];
+
+        LocatedVehicleInfo match = new(
+            GarageId: garage.Id,
+            GarageName: garage.Name,
+            SpotNumber: entry.SpotNumber,
+            Vehicle: entry.Vehicle);
+
+        ConfirmRemovalView confirmation = new(window.Theme, match);
+
+        confirmation.BackRequested += () => window.ShowPage(page);
+        confirmation.Confirmation.CancelRequested += () => window.ShowPage(page);
+
+        confirmation.Confirmation.ConfirmRequested += selected =>
+            ConfirmRemoval(selected, confirmation, (result) =>
+            {
+                page.Input.Registration.Text = string.Empty;
+                page.Input.ShowError(null);
+                page.Feedback.ShowResult(result);
+                window.ShowPage(page);
+            });
+
+        window.ShowPage(confirmation);
+    }
+
+    private void ConfirmRemoval(LocatedVehicleInfo match, ConfirmRemovalView confirmation, Action<OperationResult> onRemoved)
+    {
+        var result = removeService.RemoveVehicle(match.GarageId, match.Vehicle.RegistrationNumber);
+
+        confirmation.Feedback.ShowResult(result);
+
+        if (!result.Success)
+        {
+            confirmation.Confirmation.ShowError(result.Message);
+            return;
+        }
+
+        confirmation.Confirmation.Clear();
+        onRemoved(result);
+    }
+
+    private void HandleMenuRequest(GarageMenuAction action)
+    {
+        switch (action)
+        {
+            case GarageMenuAction.Home:
+            case GarageMenuAction.CreateGarage:
+                ShowHome();
+                return;
+
+            case GarageMenuAction.RemoveVehicle:
+                ShowGlobalRemoveVehicle();
+                return;
+
+            case GarageMenuAction.SelectGarage:
+                ShowGarages();
+                return;
+
+            case GarageMenuAction.Refresh:
+                refreshCurrentPage?.Invoke();
+                return;
+
+            case GarageMenuAction.Quit:
+                return;
+
+            case GarageMenuAction.FindVehicle:
+            case GarageMenuAction.SearchVehicles:
+                ShowGlobalSearchVehicles();
+                return;
+        }
+
+        if (selectedGarageId is null)
+        {
+            ShowGarages();
+            return;
+        }
+
+        string garageId = selectedGarageId;
+
+        switch (action)
+        {
+            case GarageMenuAction.ParkVehicle:
+                ShowParking(garageId, () => ShowGarage(garageId));
+                break;
+
+            case GarageMenuAction.FindVehicle:
+            case GarageMenuAction.SearchVehicles:
+                ShowSearch(garageId, () => ShowGarage(garageId));
+                break;
+
+            case GarageMenuAction.ShowTypeCounts:
+                ShowGarage(garageId);
+                break;
+        }
+    }
+
+    private void ShowRemovalConfirmation(LocatedVehicleInfo match, Action returnToLookup, Action<OperationResult> onRemoved)
+    {
+        ConfirmRemovalView confirmation = new(window.Theme, match);
+
+        confirmation.BackRequested += returnToLookup;
+        confirmation.Confirmation.CancelRequested += returnToLookup;
+
+        confirmation.Confirmation.ConfirmRequested += selected =>
+            ConfirmRemoval(selected, confirmation, onRemoved);
+
+        window.ShowPage(confirmation);
+    }
+
+    private void ShowGlobalRemoveVehicle()
+    {
+        GlobalRemoveVehicleView page = new(window.Theme);
+
+        page.BackRequested += ShowHome;
+
+        page.Input.LookupRequested += registration =>
+            ShowGlobalRemovalConfirmation(page, registration);
+
+        selectedGarageId = null;
+        refreshCurrentPage = null;
+
+        window.ShowPage(page);
+    }
+
+    private void ShowGlobalRemovalConfirmation(GlobalRemoveVehicleView page, string registration)
+    {
+        page.Input.ShowError(null);
+
+        var (location, result) = manager.FindVehicle(registration);
+
+        page.Feedback.ShowResult(result);
+
+        if (!result.Success || location is null)
+        {
+            page.Input.ShowError(result.Message);
+            return;
+        }
+
+        LocatedVehicleInfo match = new(
+            GarageId: location.GarageId,
+            GarageName: location.GarageName,
+            SpotNumber: location.SpotNumber,
+            Vehicle: location.Vehicle);
+
+        ShowRemovalConfirmation(
+            match,
+            () => window.ShowPage(page),
+            removalResult =>
+            {
+                page.Input.Registration.Text = string.Empty;
+                page.Input.ShowError(null);
+                page.Feedback.ShowResult(removalResult);
+                window.ShowPage(page);
+            });
+    }
+
+    private void ShowGlobalSearchVehicles()
+    {
+        GlobalSearchVehiclesView page = new(window.Theme);
+
+        page.BackRequested += ShowHome;
+
+        page.Input.SearchRequested += criteria =>
+            SearchAllVehicles(page, criteria);
+
+        page.Input.ClearRequested += () =>
+            SearchAllVehicles(page, new VehicleSearchCriteria());
+
+        selectedGarageId = null;
+        refreshCurrentPage = page.Input.Submit;
+
+        window.ShowPage(page);
+
+        SearchAllVehicles(page, new VehicleSearchCriteria());
+    }
+
+    private void SearchAllVehicles(GlobalSearchVehiclesView page, VehicleSearchCriteria criteria)
+    {
+        page.Input.ShowError(null);
+
+        var (vehicles, result) = searchService.SearchAllVehicles(criteria);
+
+        page.Feedback.ShowResult(result);
+
+        if (!result.Success)
+        {
+            page.Input.ShowError(result.Message);
+            page.Results.ShowVehicles([]);
+            return;
+        }
+
+        var matches = vehicles
+            .Select(entry => new LocatedVehicleInfo(
+                GarageId: entry.GarageId,
+                GarageName: entry.GarageName,
+                SpotNumber: entry.SpotNumber,
+                Vehicle: entry.Vehicle))
+            .ToList();
+
+        page.Results.ShowVehicles(matches);
     }
 }

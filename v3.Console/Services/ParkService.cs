@@ -5,19 +5,21 @@ using Garage.Vehicles.Specifications;
 using Garage_V3.Interfaces;
 using Garage_V3.results;
 using Vehicles.Interfaces;
+using Garage.Manager.Interfaces;
 
 namespace Garage.Terminal.Services;
 
 public sealed class ParkService
 {
-    private readonly IHandler handler;
+    //private readonly IHandler handler;
+    private readonly IGarageManager garageManager;
 
-    public ParkService(IHandler handler)
+    public ParkService(IGarageManager manager)
     {
-        this.handler = handler;
+        this.garageManager = manager;
     }
 
-    public ParkingResult ParkVehicle(ParkVehicleRequest request)
+    public ParkingResult ParkVehicle(string garageId, ParkVehicleRequest request)
     {
         try
         {
@@ -25,7 +27,7 @@ public sealed class ParkService
 
             Vehicle vehicle = CreateVehicle(request);
 
-            return handler.ParkVehicle(vehicle, request.SpotNumber);
+            return garageManager.ParkVehicle(garageId, vehicle, request.SpotNumber);
         }
         catch (ArgumentException exception)
         {

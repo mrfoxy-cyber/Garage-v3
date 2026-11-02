@@ -24,7 +24,7 @@ public class BusSpecification : VehicleSpecification
                 "A bus must have at least two wheels.");
         }
 
-        if (cabin.PassengerSeatCount < 0)
+        if (cabin?.PassengerSeatCount < 0)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(cabin),
@@ -38,14 +38,14 @@ public class BusSpecification : VehicleSpecification
                 "Standing passenger capacity cannot be negative.");
         }
 
-        if (cabin.PassengerSeatCount == 0 &&
+        if (cabin?.PassengerSeatCount == 0 &&
             standingPassengerCapacity == 0)
         {
             throw new ArgumentException(
                 "A bus must have capacity for at least one passenger.");
         }
 
-        if (cabin.CrewSeatCount < 0)
+        if (cabin?.CrewSeatCount < 0)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(cabin),

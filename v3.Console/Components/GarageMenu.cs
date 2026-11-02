@@ -17,6 +17,8 @@ public enum GarageMenuAction
     SearchVehicles,
     SelectGarage,
     ShowTypeCounts,
+
+    Home,
     Quit
 }
 
