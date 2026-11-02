@@ -18,13 +18,17 @@ public sealed class GarageCard : FormComponent
 
     public event Action<string>? SearchRequested;
 
-    public GarageCard(GarageChoice garage, GarageTheme theme) : base(theme)
+    public GarageCard(GarageChoice garage, GarageTheme theme, bool showOpenButton = true) : base(theme)
     {
         Garage = garage;
         summary = AddTextBlock(string.Empty);
-        AddAction("_Open garage", () => OpenRequested?.Invoke(Garage.Id));
+        if (showOpenButton)
+        {
+            AddAction("_Open garage", () => OpenRequested?.Invoke(Garage.Id));
+        }
         park = AddAction("_Park vehicle", () => ParkRequested?.Invoke(Garage.Id));
         remove = AddAction("_Remove vehicle", () => RemoveRequested?.Invoke(Garage.Id));
+        theme.StyleButton(remove, danger: true);
         AddAction("_Search vehicles", () => SearchRequested?.Invoke(Garage.Id));
         Update(garage);
     }

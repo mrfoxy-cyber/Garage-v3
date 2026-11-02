@@ -134,6 +134,7 @@ public sealed class BottomCommandBar : View
         }
 
         Button close = new() { Text = "_Close", Y = row + 1 };
+        theme.StyleButton(close);
         close.Accepted += (_, _) => App!.RequestStop();
         popup.Add(close);
 

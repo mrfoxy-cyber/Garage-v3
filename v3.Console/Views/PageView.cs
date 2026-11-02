@@ -25,8 +25,10 @@ public abstract class PageView : View
 
         View header = new()
         {
+            CanFocus = showBack,
             Width = Dim.Fill(),
-            Height = Dim.Auto(DimAutoStyle.Content)
+            Height = Dim.Auto(DimAutoStyle.Content),
+            SchemeName = theme.PanelHeaderScheme
         };
 
         Button back = new()
@@ -37,23 +39,28 @@ public abstract class PageView : View
             Height = Dim.Auto()
         };
 
+        theme.StyleChoice(back);
+        back.SchemeName = theme.PanelHeaderScheme;
+        back.Accepted += (_, _) => BackRequested?.Invoke();
+
         Label title = new()
         {
             Text = heading,
-            X = showBack ? Pos.Right(back) + 1 : 0,
-            Width = Dim.Fill(),
-            Height = Dim.Auto(DimAutoStyle.Text)
+            X = showBack ? Pos.Right(back) + 1 : 1,
+            Width = Dim.Fill(1),
+            Height = Dim.Auto(DimAutoStyle.Text),
+            SchemeName = theme.PanelHeaderScheme
         };
 
         title.TextFormatter.WordWrap = true;
-        back.Accepted += (_, _) => BackRequested?.Invoke();
 
         header.Add(back, title);
 
         layout = new()
         {
-            Y = Pos.Bottom(header),
-            Width = Dim.Fill(),
+            X = 1,
+            Y = Pos.Bottom(header) + 1,
+            Width = Dim.Fill(1),
             Height = Dim.Fill()
         };
 

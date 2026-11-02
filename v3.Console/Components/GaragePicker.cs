@@ -35,6 +35,9 @@ public sealed class GaragePicker : AdaptiveComponent
         create = new() { Text = "_Create garage", Height = Dim.Auto() };
         open = new() { Text = "_Open garage", Height = Dim.Auto(), Visible = false };
 
+        theme.StyleButton(create);
+        theme.StyleButton(open);
+
         create.Accepted += (_, _) => CreateRequested?.Invoke();
         open.Accepted += (_, _) => { if (SelectedGarage is { } garage) OpenRequested?.Invoke(garage.Id); };
         list.ValueChanged += (_, _) =>

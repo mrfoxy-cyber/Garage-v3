@@ -9,7 +9,7 @@ namespace Garage.Terminal.Components;
 
 public sealed class CollapsiblePanel<T> : View, IAdaptiveComponent where T : View, IAdaptiveComponent
 {
-    private const int HeaderHeight = 2;
+    private const int HeaderHeight = 1;
     private const int ContentInset = 1;
 
     private readonly string title;
@@ -20,10 +20,16 @@ public sealed class CollapsiblePanel<T> : View, IAdaptiveComponent where T : Vie
 
     public event Action? SizeHintsChanged;
 
-    private int ToggleWidth => TextWidth(IsExpanded ? "Collapse" : "Expand") + 6;
+    private int ToggleWidth => TextWidth(toggleButton.TextFormatter.Text)
+        + toggleButton.GetAdornmentsThickness().Horizontal;
 
-    public int MinimumWidth => Math.Max(ToggleWidth + 2, IsExpanded ? Content.MinimumWidth + 2 : 0);
-    public int PreferredWidth => Math.Max(TextWidth(title) + ToggleWidth + 2, IsExpanded ? Content.PreferredWidth + 2 : MinimumWidth);
+    public int MinimumWidth => Math.Max(
+        ToggleWidth + 2,
+        IsExpanded ? Content.MinimumWidth + ContentInset * 2 : 0);
+
+    public int PreferredWidth => Math.Max(
+        TextWidth(title) + ToggleWidth + 2,
+        IsExpanded ? Content.PreferredWidth + ContentInset * 2 : MinimumWidth);
 
     public CollapsiblePanel(string title, T content, GarageTheme theme, bool expanded = true)
     {
@@ -32,7 +38,7 @@ public sealed class CollapsiblePanel<T> : View, IAdaptiveComponent where T : Vie
         IsExpanded = expanded;
 
         CanFocus = true;
-        SchemeName = theme.SurfaceScheme;
+        SchemeName = theme.GroupScheme;
 
         View header = new()
         {
@@ -44,11 +50,14 @@ public sealed class CollapsiblePanel<T> : View, IAdaptiveComponent where T : Vie
 
         toggleButton = new()
         {
-            Text = expanded ? "<" : ">",
+            Text = expanded ? "-" : "+",
             X = Pos.AnchorEnd(),
             Width = Dim.Auto(),
             Height = Dim.Auto()
         };
+
+        theme.StyleChoice(toggleButton);
+        toggleButton.SchemeName = theme.PanelHeaderScheme;
 
         toggleButton.TextFormatter.WordWrap = false;
         toggleButton.Accepted += (_, _) => Toggle();
@@ -56,8 +65,10 @@ public sealed class CollapsiblePanel<T> : View, IAdaptiveComponent where T : Vie
         Label titleLabel = new()
         {
             Text = title,
+            X = ContentInset,
             Width = Dim.Fill(toggleButton) - 1,
-            Height = 1
+            Height = HeaderHeight,
+            SchemeName = theme.PanelHeaderScheme
         };
 
         titleLabel.TextFormatter.WordWrap = false;
@@ -67,7 +78,8 @@ public sealed class CollapsiblePanel<T> : View, IAdaptiveComponent where T : Vie
         content.X = ContentInset;
         content.Y = HeaderHeight;
         content.Width = Dim.Fill(ContentInset);
-        content.Height = Dim.Func(_ => content.MeasureHeight(Math.Max(1, Viewport.Width - 2)));
+        content.Height = Dim.Func(_ => content.MeasureHeight(
+            Math.Max(1, Viewport.Width - ContentInset * 2)));
         content.Visible = expanded;
         content.SizeHintsChanged += NotifyLayoutChanged;
 
@@ -83,7 +95,9 @@ public sealed class CollapsiblePanel<T> : View, IAdaptiveComponent where T : Vie
         if (!IsExpanded)
             return HeaderHeight;
 
-        return HeaderHeight + Content.MeasureHeight(Math.Max(1, availableWidth - 2)) + ContentInset;
+        int contentWidth = Math.Max(1, availableWidth - ContentInset * 2);
+
+        return HeaderHeight + Content.MeasureHeight(contentWidth) + ContentInset;
     }
 
     public void Toggle()
@@ -101,7 +115,7 @@ public sealed class CollapsiblePanel<T> : View, IAdaptiveComponent where T : Vie
 
         IsExpanded = expanded;
         Content.Visible = expanded;
-        toggleButton.Text = expanded ? "<" : ">";
+        toggleButton.Text = expanded ? "-" : "+";
 
         NotifyLayoutChanged();
     }
@@ -110,6 +124,14 @@ public sealed class CollapsiblePanel<T> : View, IAdaptiveComponent where T : Vie
     {
         SetNeedsLayout();
         SizeHintsChanged?.Invoke();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+            Content.SizeHintsChanged -= NotifyLayoutChanged;
+
+        base.Dispose(disposing);
     }
 
     private static int TextWidth(string text) => TextFormatter.GetWidestLineLength(text, 4);

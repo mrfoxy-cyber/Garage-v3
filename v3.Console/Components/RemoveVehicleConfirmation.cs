@@ -24,6 +24,7 @@ public sealed class RemoveVehicleConfirmation : FormComponent
                 ConfirmRequested?.Invoke(match);
         });
         confirm.Enabled = false;
+        theme.StyleButton(confirm, danger: true);
     }
 
     public void ShowMatch(LocatedVehicleInfo match)

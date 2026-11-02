@@ -16,10 +16,12 @@ public abstract class FormComponent : AdaptiveComponent
     public override int MinimumWidth => Math.Max(12, items.Select(item => MinimumFor(item.Control)).DefaultIfEmpty(1).Max());
     public override int PreferredWidth => Math.Max(30, items.Select(item => ComponentMetrics.NaturalWidth(item.Control)).DefaultIfEmpty(1).Max());
 
+    private readonly GarageTheme theme;
     protected FormComponent(GarageTheme theme)
     {
         CanFocus = true;
-        SchemeName = theme.SurfaceScheme;
+        this.theme = theme;
+        SchemeName = theme.GroupScheme;
 
         error = new() { Visible = false, SchemeName = theme.ErrorScheme };
         error.TextFormatter.WordWrap = true;
@@ -31,7 +33,7 @@ public abstract class FormComponent : AdaptiveComponent
     protected TextField AddTextInput(string caption, string initialValue = "")
     {
         AddCaption(caption);
-        TextField field = new() { Text = initialValue };
+        TextField field = new() { Text = initialValue, SchemeName = theme.InputScheme };
         AddItem(field, 0, true);
         return field;
     }
@@ -40,6 +42,7 @@ public abstract class FormComponent : AdaptiveComponent
     {
         AddCaption(caption);
         ChoiceInput field = new(caption, choices, selected);
+        field.ApplyTheme(theme);
         field.SizeHintsChanged += RequestReflow;
         AddItem(field, 0, true);
         return field;
@@ -48,6 +51,7 @@ public abstract class FormComponent : AdaptiveComponent
     protected Button AddAction(string caption, Action action)
     {
         Button button = new() { Text = caption, Width = Dim.Auto(), Height = Dim.Auto() };
+        theme.StyleButton(button);
         button.TextFormatter.WordWrap = false;
         button.Accepted += (_, _) => action();
         AddItem(button, 1, false);

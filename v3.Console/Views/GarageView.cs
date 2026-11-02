@@ -18,6 +18,7 @@ public sealed class GarageView : PageView
         TypeCounts = new(theme);
         Feedback = new(theme);
 
+        Summary = new(garage, theme, showOpenButton: false);
         AddPanel("Garage information", Summary);
         AddPanel("Parked vehicles", Vehicles);
         AddPanel("Vehicle types", TypeCounts);

@@ -18,8 +18,6 @@ public sealed record GarageTheme
     public string DangerButtonScheme { get; init; } = "Garage.DangerButton";
 
     private static readonly Color White = new(255, 255, 255);
-
-    private static readonly Color Light_Grey = new(225, 225, 225);
     private static readonly Color Ink = new(30, 41, 59);
     private static readonly Color Muted = new(100, 116, 139);
     private static readonly Color Blue = new(29, 78, 216);
@@ -48,7 +46,7 @@ public sealed record GarageTheme
     public void StyleButton(Button button, bool danger = false)
     {
         button.SchemeName = danger ? DangerButtonScheme : ButtonScheme;
-        button.ShadowStyle = ShadowStyles.Opaque;
+        button.ShadowStyle = ShadowStyles.None;
         button.NoDecorations = true;
         button.NoPadding = false;
         button.Padding.Thickness = new Thickness(1, 0, 1, 0);
@@ -75,7 +73,7 @@ public sealed record GarageTheme
             Active = new GuiAttribute(Ink, PaleBlue),
             HotActive = new GuiAttribute(DeepBlue, PaleBlue),
             Highlight = new GuiAttribute(Ink, PaleBlue),
-            Editable = new GuiAttribute(text, Light_Grey),
+            Editable = new GuiAttribute(text, background),
             ReadOnly = new GuiAttribute(text, background),
             Disabled = new GuiAttribute(Muted, background)
         };
@@ -94,7 +92,7 @@ public sealed record GarageTheme
             Active = new GuiAttribute(focusText, focusedBackground),
             HotActive = new GuiAttribute(focusText, focusedBackground),
             Highlight = new GuiAttribute(focusText, focusedBackground),
-            Editable = new GuiAttribute(Light_Grey, background),
+            Editable = new GuiAttribute(White, background),
             ReadOnly = new GuiAttribute(White, background),
             Disabled = new GuiAttribute(Muted, Disabled)
         };

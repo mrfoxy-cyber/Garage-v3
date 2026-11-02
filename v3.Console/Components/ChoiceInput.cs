@@ -1,5 +1,6 @@
-using System.Collections.ObjectModel;
 using Garage.Terminal.Components.Shared;
+using Garage.Terminal.Theming;
+using System.Collections.ObjectModel;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
@@ -16,6 +17,16 @@ public sealed class ChoiceInput : AdaptiveComponent
 
     public override int MinimumWidth => Math.Max(12, ComponentMetrics.NaturalWidth(button));
     public override int PreferredWidth => Math.Max(MinimumWidth, choices.Select(ComponentMetrics.TextWidth).DefaultIfEmpty(1).Max() + 8);
+
+    private GarageTheme? theme;
+
+    public void ApplyTheme(GarageTheme theme)
+    {
+        this.theme = theme;
+        SchemeName = theme.InputScheme;
+        theme.StyleChoice(button);
+        RequestReflow();
+    }
 
     public ChoiceInput(string caption, IEnumerable<string> choices, string? selected = null)
     {
@@ -57,8 +68,10 @@ public sealed class ChoiceInput : AdaptiveComponent
 
     private void OpenPicker()
     {
+
         if (choices.Count == 0 || App is null)
             return;
+
 
         using Window popup = new()
         {
@@ -68,6 +81,9 @@ public sealed class ChoiceInput : AdaptiveComponent
             Width = Dim.Auto(DimAutoStyle.Content, minimumContentDim: PreferredWidth + 4, maximumContentDim: Dim.Percent(100)),
             Height = Math.Min(choices.Count + 5, 14)
         };
+
+        if (theme is not null)
+            popup.SchemeName = theme.SurfaceScheme;
 
         ListView list = new()
         {
@@ -79,6 +95,9 @@ public sealed class ChoiceInput : AdaptiveComponent
 
         Button cancel = new() { Text = "Ca_ncel", Y = Pos.AnchorEnd() };
         Button choose = new() { Text = "_Choose", X = Pos.Right(cancel) + 1, Y = cancel.Y };
+        theme?.StyleButton(cancel);
+        theme?.StyleButton(choose);
+
         string? selection = null;
         cancel.Accepted += (_, _) => App.RequestStop();
         choose.Accepted += (_, _) =>
