@@ -17,7 +17,7 @@ namespace Garage.Vehicles
         public string? AirframeSerialNumber { get; init; }
         public int? NumberOfWheels => Specification?.NumberOfWheels;
 
-        public int? PassengerCapacity => Specification?.Cabin.PassengerSeatCount;
+        public int? PassengerCapacity => Specification?.Cabin?.PassengerSeatCount;
 
         public int? DriverSeats =>
             Specification?.Cockpit?.PilotSeats ?? 0;
@@ -25,6 +25,6 @@ namespace Garage.Vehicles
         public int? NumberOfSeats =>
             PassengerCapacity +
             DriverSeats +
-            Specification?.Cabin.CrewSeatCount;
+            Specification?.Cabin?.CrewSeatCount;
     }
 }

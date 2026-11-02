@@ -1,0 +1,46 @@
+{
+  "Version": 1,
+  "Name": "Example garage",
+  "Capacity": 10,
+  "Vehicles": [
+    {
+      "VehicleType": "Car",
+      "RegistrationNumber": "ABC123",
+      "CountryCode": "SWE",
+      "Color": "Black",
+      "NumberOfWheels": 4,
+      "Manufacturer": "Volvo",
+      "Model": "V70",
+      "ManufacturingYear": 2015
+    },
+    {
+      "VehicleType": "Motorcycle",
+      "RegistrationNumber": "DEF456",
+      "CountryCode": "SWE",
+      "Color": "Blue",
+      "NumberOfWheels": 2,
+      "Manufacturer": "Honda"
+    },
+    {
+      "VehicleType": "Bus",
+      "RegistrationNumber": "GHI789",
+      "CountryCode": "SWE",
+      "Color": "White",
+      "NumberOfWheels": 6,
+      "Manufacturer": "Scania"
+    },
+    {
+      "VehicleType": "Boat",
+      "RegistrationNumber": "SABC",
+      "CountryCode": "SWE",
+      "Color": "White"
+    },
+    {
+      "VehicleType": "Airplane",
+      "RegistrationNumber": "SE-ABC",
+      "CountryCode": "SWE",
+      "Color": "Silver",
+      "NumberOfWheels": 3
+    }
+  ]
+}

@@ -26,4 +26,6 @@ public interface IGarageManager
     (VehicleLocation? Location, OperationResult Result) FindVehicle(string registrationNumber);
 
     (IReadOnlyList<VehicleLocation> Vehicles, OperationResult Result) SearchAllVehicles(VehicleSearchCriteria criteria);
+
+    (string? GarageId, OperationResult Result) LoadGarage(string path);
 }

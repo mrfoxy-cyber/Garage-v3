@@ -5,6 +5,7 @@ using Garage_V3.results;
 using Garage_V3.Services;
 using Vehicles.Interfaces;
 using Garage.Manager.Interfaces;
+using Garage.Manager.Persistence.Json;
 
 namespace Garage.Manager;
 
@@ -307,5 +308,10 @@ public sealed class GarageManager: IGarageManager
 
         return (matches.AsReadOnly(), OperationResult.Completed(
             $"Found {matches.Count} matching vehicles across all garages."));
+    }
+
+    public (string? GarageId, OperationResult Result) LoadGarage(string path)
+    {
+        return GarageFileImport.Load(path, this);
     }
 }

@@ -56,6 +56,8 @@ public sealed class GarageUiService
         homeView = new(window.Theme, choices);
 
         homeView.CreateInput.CreateRequested += CreateGarage;
+        homeView.CreateInput.CreateRequested += CreateGarage;
+        homeView.LoadInput.LoadRequested += LoadGarage;
 
         foreach (var card in homeView.GarageCards)
         {
@@ -509,5 +511,28 @@ public sealed class GarageUiService
             .ToList();
 
         page.Results.ShowVehicles(matches);
+    }
+
+    private void LoadGarage()
+    {
+        if (window.App is not { } app)
+            return;
+
+        homeView?.LoadInput.ShowError(null);
+
+        string? path = GarageFilePicker.Choose(app);
+
+        if (path is null)
+            return;
+
+        var (garageId, result) = manager.LoadGarage(path);
+
+        if (!result.Success || garageId is null)
+        {
+            homeView?.LoadInput.ShowError(result.Message);
+            return;
+        }
+
+        ShowGarage(garageId, result);
     }
 }
