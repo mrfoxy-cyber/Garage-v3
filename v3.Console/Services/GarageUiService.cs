@@ -56,7 +56,6 @@ public sealed class GarageUiService
         homeView = new(window.Theme, choices);
 
         homeView.CreateInput.CreateRequested += CreateGarage;
-        homeView.CreateInput.CreateRequested += CreateGarage;
         homeView.LoadInput.LoadRequested += LoadGarage;
 
         foreach (var card in homeView.GarageCards)
