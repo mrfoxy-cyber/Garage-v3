@@ -7,6 +7,7 @@ namespace Garage.Terminal.Components;
 
 public sealed class GarageCard : FormComponent
 {
+
     private readonly Label summary;
     private readonly Button park;
     private readonly Button remove;

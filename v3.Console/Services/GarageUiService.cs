@@ -63,7 +63,8 @@ public sealed class GarageUiService
             card.OpenRequested += id => ShowGarage(id);
             card.ParkRequested += id => ShowParking(id, () => ShowHome());
             card.RemoveRequested += id => ShowRemoveVehicle(id, () => ShowHome());
-            card.SearchRequested += id => ShowGlobalSearchVehicles();
+            card.SearchRequested += garageId =>
+                        ShowSearch(garageId, () => ShowHome());
         }
 
         selectedGarageId = null;
