@@ -21,7 +21,7 @@ namespace Garage_V3
         public int OccupiedSpaces => Vehicles.Count;
         public int AvailableSpaces => Capacity - OccupiedSpaces;
 
-        public int? FindAvailableSpot()
+        private int? FindAvailableSpot()
         {
             var occupiedSpots = Vehicles.Select(entry => entry.SpotNumber).ToHashSet();
 

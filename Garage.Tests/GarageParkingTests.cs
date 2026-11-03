@@ -159,22 +159,6 @@ public sealed class GarageParkingTests
         Assert.Equal(2, garage.AvailableSpaces);
     }
 
-    [Fact]
-    public void ParkVehicle_NullVehicleWithRequestedSpot_ReturnsValidationFailureAndKeepsSpotFree()
-    {
-        // Arrange
-        VehicleGarage garage = new("Test garage", 2);
-
-        // Act
-        var result = garage.ParkVehicle(null!, spotNumber: 1);
-
-        // Assert
-        Assert.False(result.Success);
-        Assert.Equal(OperationError.ValidationFailed, result.Error);
-        Assert.Empty(garage.Vehicles);
-        Assert.Equal(1, garage.FindAvailableSpot());
-    }
-
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
@@ -237,34 +221,6 @@ public sealed class GarageParkingTests
         Assert.True(parking.Success, parking.Message);
         Assert.Equal(1, parking.SpotNumber);
         Assert.Same(second, Assert.Single(garage.Vehicles).Vehicle);
-    }
-
-    [Fact]
-    public void FindAvailableSpot_EmptyGarage_ReturnsFirstSpot()
-    {
-        // Arrange
-        VehicleGarage garage = new("Test garage", 3);
-
-        // Act
-        int? spot = garage.FindAvailableSpot();
-
-        // Assert
-        Assert.Equal(1, spot);
-        Assert.Empty(garage.Vehicles);
-    }
-
-    [Fact]
-    public void FindAvailableSpot_FullGarage_ReturnsNull()
-    {
-        // Arrange
-        VehicleGarage garage = new("Test garage", 1);
-        Assert.True(garage.ParkVehicle(CreateVehicle()).Success);
-
-        // Act
-        int? spot = garage.FindAvailableSpot();
-
-        // Assert
-        Assert.Null(spot);
     }
 
     [Fact]

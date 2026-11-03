@@ -48,7 +48,7 @@ namespace Garage.Vehicles
         }
 
         protected virtual string NormalizeRegistrationNumber(string number) =>
-            number.Trim().ToUpperInvariant();
+            number.Trim();
 
         protected abstract bool IsValidRegistration(
             string number, CountryCode countryCode);

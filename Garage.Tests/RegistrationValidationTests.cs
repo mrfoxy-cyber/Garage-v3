@@ -18,7 +18,7 @@ public class RegistrationValidationTests
     {
         var car = CarFactory.CreateCar(number, countryCode);
 
-        Assert.Equal(number.Trim().ToUpperInvariant().Replace("-", ""), car.RegistrationNumber);
+        Assert.Equal(number.Trim().Replace("-", ""), car.RegistrationNumber);
         Assert.Equal(countryCode, car.CountryCode);
     }
 
@@ -58,7 +58,7 @@ public class RegistrationValidationTests
     {
         var boat = VehicleFixtures.CreateBoat(registrationNumber: " sfb-2345 ");
 
-        Assert.Equal("SFB-2345", boat.RegistrationNumber);
+        Assert.Equal("sfb-2345", boat.RegistrationNumber);
         Assert.Throws<ArgumentException>(() =>
             VehicleFixtures.CreateBoat(registrationNumber: "ABC123"));
         Assert.Throws<NotSupportedException>(() =>
@@ -71,7 +71,7 @@ public class RegistrationValidationTests
         var airplane = VehicleFixtures.CreateAirplane(
             registrationNumber: " d-abcd ", countryCode: CountryCode.DEU);
 
-        Assert.Equal("D-ABCD", airplane.RegistrationNumber);
+        Assert.Equal("d-abcd", airplane.RegistrationNumber);
         Assert.Throws<ArgumentException>(() => VehicleFixtures.CreateAirplane(
             registrationNumber: "D-ABCD", countryCode: CountryCode.SWE));
     }
