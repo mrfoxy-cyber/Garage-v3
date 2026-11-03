@@ -118,7 +118,7 @@ public sealed class GarageUiService
         page.Summary.OpenRequested += id => ShowGarage(id);
         page.Summary.ParkRequested += id => ShowParking(id, () => ShowGarage(id));
         page.Summary.RemoveRequested += id => ShowRemoveVehicle(id, () => ShowGarage(id));
-        page.Summary.SearchRequested += id => ShowGlobalSearchVehicles();
+        page.Summary.SearchRequested += id => ShowSearch(id, () => ShowGarage(id));
 
         if (feedback is not null)
             page.Feedback.ShowResult(feedback);
