@@ -1,6 +1,9 @@
 ﻿using Garage.Tests.Fixtures;
+using Garage.Vehicles;
+using Garage.Vehicles.Types;
 using Garage_V3;
 using Garage_V3.Interfaces;
+using Garage_V3.queries;
 using Garage_V3.results;
 using Garage_V3.Services;
 using System;
@@ -670,22 +673,56 @@ public class GarageHandlerTests
 
     // SearchVehicles
 
-    [Fact(Skip = "TODO")]
+    [Fact]
     public void SearchVehicles_NoGarage_ReturnsEmptyCollectionAndNoGarageFailure()
     {
+        // Arrange
+        IHandler handler = new GarageHandler();
+        VehicleSearchCriteria criteria = new();
+
+        // Act
+        var (vehicles, result) = handler.SearchVehicles(criteria);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(OperationError.NoGarage, result.Error);
+        Assert.Empty(vehicles);
     }
 
-    [Fact(Skip = "TODO")]
+    [Fact]
     public void SearchVehicles_NullCriteria_ReturnsEmptyCollectionAndValidationFailure()
     {
+        // Arrange
+        var fixture = GarageFixtures.CreateHandlerWithVehicles();
+
+        // Act
+        var (vehicles, result) = fixture.Handler.SearchVehicles(null!);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(OperationError.ValidationFailed, result.Error);
+        Assert.Empty(vehicles);
     }
 
-    [Fact(Skip = "TODO")]
-    public void SearchVehicles_NoFilters_ReturnsAllParkedVehicles()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SearchVehicles_NoFilters_ReturnsAllParkedVehicles(bool fullVehicle)
     {
+        // Arrange
+        FixtureKind kind = fullVehicle ? FixtureKind.Full : FixtureKind.Minimal;
+        var fixture = GarageFixtures.CreateHandlerWithVehicles(kind: kind);
+        VehicleSearchCriteria criteria = new();
+
+        // Act
+        var (vehicles, result) = fixture.Handler.SearchVehicles(criteria);
+
+        // Assert
+        Assert.True(result.Success, result.Message);
+        AssertSearchMatches(vehicles, fixture.ExpectedVehicles);
     }
 
-    [Theory(Skip = "TODO")]
+    [Theory]
     [InlineData("RegistrationNumber")]
     [InlineData("VehicleType")]
     [InlineData("Manufacturer")]
@@ -696,77 +733,418 @@ public class GarageHandlerTests
     [InlineData("NumberOfWheels")]
     public void SearchVehicles_SingleFilter_ReturnsOnlyMatchingVehicles(string filter)
     {
+        // Arrange
+        var fixture = GarageFixtures.CreateHandlerWithVehicles(kind: FixtureKind.Full);
+
+        (VehicleSearchCriteria Criteria, Type[] Types) testCase = filter switch
+        {
+            "RegistrationNumber" => (new() { RegistrationNumber = "ABC123" }, [typeof(Car)]),
+            "VehicleType" => (new() { VehicleType = "Car" }, [typeof(Car)]),
+            "Manufacturer" => (new() { Manufacturer = "Volvo" }, [typeof(Car), typeof(Truck)]),
+            "Model" => (new() { Model = "V70" }, [typeof(Car)]),
+            "CountryCode" => (new() { CountryCode = CountryCode.SWE },
+                [typeof(Car), typeof(Motorcycle), typeof(Bus), typeof(Airplane), typeof(Boat), typeof(Truck)]),
+            "ManufacturingYear" => (new() { ManufacturingYear = 2020 }, [typeof(Car)]),
+            "Color" => (new() { Color = VehicleColor.White }, [typeof(Airplane), typeof(Boat)]),
+            "NumberOfWheels" => (new() { NumberOfWheels = 6 }, [typeof(Bus), typeof(Truck)]),
+            _ => throw new ArgumentOutOfRangeException(nameof(filter))
+        };
+
+        var expected = fixture.ExpectedVehicles
+            .Where(entry => testCase.Types.Contains(entry.Vehicle.GetType()))
+            .ToList();
+
+        // Act
+        var (vehicles, result) = fixture.Handler.SearchVehicles(testCase.Criteria);
+
+        // Assert
+        Assert.True(result.Success, result.Message);
+        AssertSearchMatches(vehicles, expected);
     }
 
-    [Fact(Skip = "TODO")]
+    [Fact]
     public void SearchVehicles_CombinedFilters_RequiresAllCriteriaToMatch()
     {
+        // Arrange
+        IHandler handler = GarageFixtures.CreateHandler(capacity: 4);
+
+        IVehicle matching = VehicleFixtures.CreateCar(
+            registrationNumber: "MAT001", color: VehicleColor.Black,
+            manufacturer: "Volvo", manufacturingYear: 2020);
+
+        IVehicle wrongColor = VehicleFixtures.CreateCar(
+            registrationNumber: "COL001", color: VehicleColor.Red,
+            manufacturer: "Volvo", manufacturingYear: 2020);
+
+        IVehicle wrongManufacturer = VehicleFixtures.CreateCar(
+            registrationNumber: "MAN001", color: VehicleColor.Black,
+            manufacturer: "Saab", manufacturingYear: 2020);
+
+        IVehicle wrongYear = VehicleFixtures.CreateCar(
+            registrationNumber: "YEA001", color: VehicleColor.Black,
+            manufacturer: "Volvo", manufacturingYear: 2021);
+
+        foreach (IVehicle vehicle in new[] { matching, wrongColor, wrongManufacturer, wrongYear })
+        {
+            var setupResult = handler.ParkVehicle(vehicle);
+            Assert.True(setupResult.Success, setupResult.Message);
+        }
+
+        VehicleSearchCriteria criteria = new()
+        {
+            Manufacturer = "Volvo",
+            Color = VehicleColor.Black,
+            ManufacturingYear = 2020
+        };
+
+        // Act
+        var (vehicles, result) = handler.SearchVehicles(criteria);
+
+        // Assert
+        Assert.True(result.Success, result.Message);
+        var match = Assert.Single(vehicles);
+        Assert.Same(matching, match.Vehicle);
     }
 
-    [Fact(Skip = "TODO")]
+    [Fact]
     public void SearchVehicles_NoMatches_ReturnsEmptyCollectionAndSuccess()
     {
+        // Arrange
+        var fixture = GarageFixtures.CreateHandlerWithVehicles(kind: FixtureKind.Full);
+        VehicleSearchCriteria criteria = new() { Color = VehicleColor.Pink };
+
+        // Act
+        var (vehicles, result) = fixture.Handler.SearchVehicles(criteria);
+
+        // Assert
+        Assert.True(result.Success, result.Message);
+        Assert.Empty(vehicles);
     }
 
-    [Fact(Skip = "TODO")]
+    [Fact]
     public void SearchVehicles_TextFilters_IgnoreCaseAndTrimSearchValues()
     {
+        // Arrange
+        var fixture = GarageFixtures.CreateHandlerWithVehicles(kind: FixtureKind.Full);
+        var expected = fixture.ExpectedVehicles.Where(entry => entry.Vehicle is Car).ToList();
+
+        VehicleSearchCriteria criteria = new()
+        {
+            RegistrationNumber = "  abc123  ",
+            VehicleType = "  car  ",
+            Manufacturer = "  volvo  ",
+            Model = "  v70  "
+        };
+
+        // Act
+        var (vehicles, result) = fixture.Handler.SearchVehicles(criteria);
+
+        // Assert
+        Assert.True(result.Success, result.Message);
+        AssertSearchMatches(vehicles, expected);
     }
 
-    [Fact(Skip = "TODO")]
-    public void SearchVehicles_TextFilter_RequiresWholeValueMatch()
+    [Theory]
+    [InlineData("RegistrationNumber", "ABC")]
+    [InlineData("VehicleType", "Ca")]
+    [InlineData("Manufacturer", "Vol")]
+    [InlineData("Model", "V7")]
+    public void SearchVehicles_TextFilter_RequiresWholeValueMatch(string filter, string value)
     {
+        // Arrange
+        var fixture = GarageFixtures.CreateHandlerWithVehicles(kind: FixtureKind.Full);
+
+        VehicleSearchCriteria criteria = filter switch
+        {
+            "RegistrationNumber" => new() { RegistrationNumber = value },
+            "VehicleType" => new() { VehicleType = value },
+            "Manufacturer" => new() { Manufacturer = value },
+            "Model" => new() { Model = value },
+            _ => throw new ArgumentOutOfRangeException(nameof(filter))
+        };
+
+        // Act
+        var (vehicles, result) = fixture.Handler.SearchVehicles(criteria);
+
+        // Assert
+        Assert.True(result.Success, result.Message);
+        Assert.Empty(vehicles);
     }
 
-    [Fact(Skip = "TODO")]
+    [Fact]
     public void SearchVehicles_BlankTextFilters_AreIgnored()
     {
+        // Arrange
+        var fixture = GarageFixtures.CreateHandlerWithVehicles(kind: FixtureKind.Full);
+        VehicleSearchCriteria criteria = new()
+        {
+            RegistrationNumber = "",
+            VehicleType = "   ",
+            Manufacturer = "\t",
+            Model = " "
+        };
+
+        // Act
+        var (vehicles, result) = fixture.Handler.SearchVehicles(criteria);
+
+        // Assert
+        Assert.True(result.Success, result.Message);
+        AssertSearchMatches(vehicles, fixture.ExpectedVehicles);
     }
 
-    [Fact(Skip = "TODO")]
-    public void SearchVehicles_MissingOptionalDetails_DoesNotMatchSpecifiedFilter()
+    [Theory]
+    [InlineData("Manufacturer")]
+    [InlineData("Model")]
+    [InlineData("ManufacturingYear")]
+    [InlineData("Color")]
+    [InlineData("NumberOfWheels")]
+    public void SearchVehicles_MissingOptionalDetails_DoesNotMatchSpecifiedFilter(string filter)
     {
+        // Arrange
+        var fixture = GarageFixtures.CreateHandlerWithVehicles(kind: FixtureKind.Minimal);
+
+        VehicleSearchCriteria criteria = filter switch
+        {
+            "Manufacturer" => new() { Manufacturer = "Volvo" },
+            "Model" => new() { Model = "V70" },
+            "ManufacturingYear" => new() { ManufacturingYear = 2020 },
+            "Color" => new() { Color = VehicleColor.Black },
+            "NumberOfWheels" => new() { NumberOfWheels = 4 },
+            _ => throw new ArgumentOutOfRangeException(nameof(filter))
+        };
+
+        // Act
+        var (vehicles, result) = fixture.Handler.SearchVehicles(criteria);
+
+        // Assert
+        Assert.True(result.Success, result.Message);
+        Assert.Empty(vehicles);
     }
 
-    [Fact(Skip = "TODO")]
+    [Fact]
     public void SearchVehicles_WheelFilter_ExcludesVehiclesWithoutWheelCapability()
     {
+        // Arrange
+        IHandler handler = GarageFixtures.CreateHandler(capacity: 2);
+        IVehicle car = VehicleFixtures.CreateCar(FixtureKind.Full);
+        IVehicle boat = VehicleFixtures.CreateBoat(FixtureKind.Full);
+
+        var carResult = handler.ParkVehicle(car);
+        Assert.True(carResult.Success, carResult.Message);
+
+        var boatResult = handler.ParkVehicle(boat);
+        Assert.True(boatResult.Success, boatResult.Message);
+
+        VehicleSearchCriteria criteria = new() { NumberOfWheels = 4 };
+
+        // Act
+        var (vehicles, result) = handler.SearchVehicles(criteria);
+
+        // Assert
+        Assert.True(result.Success, result.Message);
+        var match = Assert.Single(vehicles);
+        Assert.Same(car, match.Vehicle);
     }
 
-    [Fact(Skip = "TODO")]
+    [Fact]
     public void SearchVehicles_MatchingVehicles_PreservesSpotNumbers()
     {
+        // Arrange
+        IHandler handler = GarageFixtures.CreateHandler(capacity: 10);
+        IVehicle airplane = VehicleFixtures.CreateAirplane(FixtureKind.Full);
+        IVehicle boat = VehicleFixtures.CreateBoat(FixtureKind.Full);
+        IVehicle car = VehicleFixtures.CreateCar(FixtureKind.Full);
+
+        var airplaneResult = handler.ParkVehicle(airplane, 8);
+        Assert.True(airplaneResult.Success, airplaneResult.Message);
+
+        var boatResult = handler.ParkVehicle(boat, 2);
+        Assert.True(boatResult.Success, boatResult.Message);
+
+        var carResult = handler.ParkVehicle(car, 5);
+        Assert.True(carResult.Success, carResult.Message);
+
+        VehicleSearchCriteria criteria = new() { Color = VehicleColor.White };
+
+        // Act
+        var (vehicles, result) = handler.SearchVehicles(criteria);
+
+        // Assert
+        Assert.True(result.Success, result.Message);
+        AssertSearchMatches(vehicles, [(8, airplane), (2, boat)]);
     }
 
+    // Shared assertions for returned vehicles and their original spots.
+    private static void AssertSearchMatches(IReadOnlyList<ParkedVehicleInfo> actual, IEnumerable<(int SpotNumber, IVehicle Vehicle)> expected)
+    {
+        var expectedVehicles = expected.ToList();
+        Assert.Equal(expectedVehicles.Count, actual.Count);
+
+        foreach (var entry in expectedVehicles)
+        {
+            var match = Assert.Single(actual, parked => ReferenceEquals(parked.Vehicle, entry.Vehicle));
+            Assert.Equal(entry.SpotNumber, match.SpotNumber);
+        }
+    }
     // InitializeVehicles
 
-    [Fact(Skip = "TODO")]
+    [Fact]
     public void InitializeVehicles_NoGarage_ReturnsNoGarageFailure()
     {
+        // Arrange
+        IHandler handler = new GarageHandler();
+        var initialVehicles = VehicleFixtures.CreateAll(FixtureKind.Minimal);
+
+        // Act
+        var result = handler.InitializeVehicles(initialVehicles);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(OperationError.NoGarage, result.Error);
     }
 
-    [Fact(Skip = "TODO")]
-    public void InitializeVehicles_ValidCollection_PopulatesGarageAndReturnsSuccess()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void InitializeVehicles_ValidCollection_PopulatesGarageAndReturnsSuccess(bool fullVehicle)
     {
+        // Arrange
+        FixtureKind kind = fullVehicle ? FixtureKind.Full : FixtureKind.Minimal;
+        var initialVehicles = VehicleFixtures.CreateAll(kind);
+        IHandler handler = GarageFixtures.CreateHandler(capacity: initialVehicles.Count + 2);
+
+        // Act
+        var result = handler.InitializeVehicles(initialVehicles);
+
+        // Assert
+        Assert.True(result.Success, result.Message);
+
+        var (vehicles, vehiclesResult) = handler.GetVehicles();
+        Assert.True(vehiclesResult.Success, vehiclesResult.Message);
+        Assert.Equal(initialVehicles.Count, vehicles.Count);
+
+        for (int index = 0; index < initialVehicles.Count; index++)
+        {
+            var parked = Assert.Single(vehicles, entry => entry.SpotNumber == index + 1);
+            Assert.Same(initialVehicles[index], parked.Vehicle);
+        }
+
+        var (info, infoResult) = handler.GetGarageInfo();
+        Assert.True(infoResult.Success, infoResult.Message);
+        Assert.NotNull(info);
+        Assert.Equal(initialVehicles.Count, info.OccupiedSpaces);
+        Assert.Equal(2, info.AvailableSpaces);
     }
 
-    [Fact(Skip = "TODO")]
-    public void InitializeVehicles_InvalidCollection_ReturnsValidationFailure()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void InitializeVehicles_InvalidCollection_ReturnsValidationFailure(bool containsNullVehicle)
     {
+        // Arrange
+        IHandler handler = GarageFixtures.CreateHandler();
+        IEnumerable<IVehicle>? initialVehicles = containsNullVehicle
+            ? new IVehicle[] { VehicleFixtures.CreateCar(FixtureKind.Minimal), null! }
+            : null;
+
+        // Act
+        var result = handler.InitializeVehicles(initialVehicles!);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(OperationError.ValidationFailed, result.Error);
+
+        var (vehicles, vehiclesResult) = handler.GetVehicles();
+        Assert.True(vehiclesResult.Success, vehiclesResult.Message);
+        Assert.Empty(vehicles);
     }
 
-    [Fact(Skip = "TODO")]
+    [Fact]
     public void InitializeVehicles_DuplicateRegistrations_ReturnsFailureAndLeavesGarageEmpty()
     {
+        // Arrange
+        IHandler handler = GarageFixtures.CreateHandler();
+        IVehicle[] initialVehicles =
+        [
+            VehicleFixtures.CreateBus(FixtureKind.Minimal),
+        VehicleFixtures.CreateCar(FixtureKind.Minimal, registrationNumber: "ABC123"),
+        VehicleFixtures.CreateMotorcycle(FixtureKind.Minimal, registrationNumber: "abc123")
+        ];
+
+        // Act
+        var result = handler.InitializeVehicles(initialVehicles);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(OperationError.DuplicateRegistration, result.Error);
+
+        var (vehicles, vehiclesResult) = handler.GetVehicles();
+        Assert.True(vehiclesResult.Success, vehiclesResult.Message);
+        Assert.Empty(vehicles);
+
+        var (info, infoResult) = handler.GetGarageInfo();
+        Assert.True(infoResult.Success, infoResult.Message);
+        Assert.NotNull(info);
+        Assert.Equal(0, info.OccupiedSpaces);
+        Assert.Equal(info.Capacity, info.AvailableSpaces);
     }
 
-    [Fact(Skip = "TODO")]
+    [Fact]
     public void InitializeVehicles_OverCapacity_ReturnsFailureAndLeavesGarageEmpty()
     {
+        // Arrange
+        var initialVehicles = VehicleFixtures.CreateAll(FixtureKind.Minimal);
+        IHandler handler = GarageFixtures.CreateHandler(capacity: initialVehicles.Count - 1);
+
+        // Act
+        var result = handler.InitializeVehicles(initialVehicles);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(OperationError.GarageFull, result.Error);
+
+        var (vehicles, vehiclesResult) = handler.GetVehicles();
+        Assert.True(vehiclesResult.Success, vehiclesResult.Message);
+        Assert.Empty(vehicles);
+
+        var (info, infoResult) = handler.GetGarageInfo();
+        Assert.True(infoResult.Success, infoResult.Message);
+        Assert.NotNull(info);
+        Assert.Equal(0, info.OccupiedSpaces);
+        Assert.Equal(info.Capacity, info.AvailableSpaces);
     }
 
-    [Fact(Skip = "TODO")]
+    [Fact]
     public void InitializeVehicles_NonEmptyGarage_ReturnsFailureAndKeepsExistingVehicles()
     {
+        // Arrange
+        var fixture = GarageFixtures.CreateHandlerWithVehicles(capacity: 10);
+        IVehicle[] initialVehicles =
+        [
+            VehicleFixtures.CreateCar(FixtureKind.Minimal, registrationNumber: "NEW123")
+        ];
+
+        // Act
+        var result = fixture.Handler.InitializeVehicles(initialVehicles);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(OperationError.ValidationFailed, result.Error);
+
+        var (vehicles, vehiclesResult) = fixture.Handler.GetVehicles();
+        Assert.True(vehiclesResult.Success, vehiclesResult.Message);
+        Assert.Equal(fixture.ExpectedOccupiedSpaces, vehicles.Count);
+
+        foreach (var expected in fixture.ExpectedVehicles)
+        {
+            var parked = Assert.Single(vehicles, entry => entry.SpotNumber == expected.SpotNumber);
+            Assert.Same(expected.Vehicle, parked.Vehicle);
+        }
+
+        var (info, infoResult) = fixture.Handler.GetGarageInfo();
+        Assert.True(infoResult.Success, infoResult.Message);
+        Assert.NotNull(info);
+        Assert.Equal(fixture.ExpectedOccupiedSpaces, info.OccupiedSpaces);
+        Assert.Equal(fixture.ExpectedAvailableSpaces, info.AvailableSpaces);
     }
 }

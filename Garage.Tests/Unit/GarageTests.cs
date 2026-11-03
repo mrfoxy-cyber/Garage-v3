@@ -37,17 +37,16 @@ public class GarageTests
         Assert.Equal("Test Garage", garage.GarageName);
     }
 
-    [Theory(Skip = "TODO")]
+    [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
     public void Constructor_InvalidName_ThrowsArgumentException(string? name)
     {
-
-        Assert.Throws<ArgumentException>(() => new Garage<IVehicle>(name, 3));
+        Assert.ThrowsAny<ArgumentException>(() => new Garage<IVehicle>(name!, 3));
     }
 
-    [Theory(Skip = "TODO")]
+    [Theory]
     [InlineData(0)]
     [InlineData(-1)]
     [InlineData(100_001)]
@@ -221,7 +220,7 @@ public class GarageTests
         Assert.Equal(availableBefore - 1, garage.AvailableSpaces);
     }
 
-    [Fact(Skip = "TODO")]
+    [Fact]
     public void ParkVehicle_NullVehicle_ReturnsValidationFailure()
     {
         Garage<IVehicle> garage = new("Test Garage", 5);
@@ -241,7 +240,7 @@ public class GarageTests
         Assert.Equal(availableBefore, garage.AvailableSpaces);  
     }
 
-    [Fact(Skip = "TODO")]  // Vehcile luckily doesnt allow null reg, so skip this test for now
+    [Fact(Skip = " Vehcile luckily doesnt allow null reg, so skip this test for now")]  
     public void ParkVehicle_BlankRegistration_ReturnsValidationFailure()
     {
     }
