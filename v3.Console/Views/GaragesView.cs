@@ -15,5 +15,7 @@ public sealed class GaragesView : PageView
 
         AddPanel("Available garages", Picker);
         AddPanel("Feedback", Feedback);
+
+        AddPanel("Cat garage", new AnimatedCatCar(theme));
     }
 }
